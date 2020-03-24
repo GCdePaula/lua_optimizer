@@ -1,0 +1,10 @@
+
+*.o
+
+*.so
+
+lua
+
+luac
+
+lua\@5.4/src/liblua.a
