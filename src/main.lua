@@ -1,6 +1,8 @@
--- require "paths"
-package.path = package.path..";./libs/?.lua"
-package.cpath = package.path..";./libs/?/?.so"
+print(arg[0])
+print"bananas"
+
+package.path = package.path .. ";./libs/?.lua"
+package.cpath = package.path .. ";./libs/?/?.so"
 
 local bb = require "b"
 local xx = require "xx.a"
