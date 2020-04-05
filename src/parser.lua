@@ -1,12 +1,4 @@
---
-package.path = package.path .. ";./libs/?.lua"
-package.cpath = package.path .. ";./libs/?/?.so"
-local dump = require('pl.pretty').dump
---
-
-
 local lpeg = require "lpeg"
-
 
 local S, R, P, V = lpeg.S, lpeg.R, lpeg.P, lpeg.V
 local C, Cc, Cg, Cf, Ct, Cmt = lpeg.C, lpeg.Cc, lpeg.Cg, lpeg.Cf, lpeg.Ct, lpeg.Cmt
@@ -171,7 +163,8 @@ local function createLuaGrammar()
 	end
 
 	local function nestExpression(a, b)
-		if b.tag == 'Call' then
+		dump(a)
+		if b.tag == 'FunctionCall' then
 			b.func = a
 		elseif b.tag == 'MethodCall' then
 			b.receiver = a
@@ -188,7 +181,6 @@ local function createLuaGrammar()
 	end
 
 	local function localFunctionDesugar(name, func)
-		dump(name)
 		func.tag = 'AnonymousFunction'
 		return {
 				tag  = 'LocalAssign',
@@ -200,12 +192,11 @@ local function createLuaGrammar()
 			{
 				tag  = 'Assign',
 				vars = {
-					{tag="Var", name=name}
+					{tag='Var', name=name}
 				},
 				exps = {func}
 			}
 	end
-
 
 	local function globalFunctionDesugar(var, func)
 		if var.tag == 'MethodDef' then
@@ -227,7 +218,7 @@ local function createLuaGrammar()
 
 	local function nestIf(a, b)
 		if b then
-			a.elseBody = {tag='Block', statements={b}}
+			a.elseBody = b
 			b.topIf = a.topIf or a
 			a.topIf = nil
 			return b
@@ -244,6 +235,23 @@ local function createLuaGrammar()
 			return p
 		else
 			return c
+		end
+	end
+
+	local function nestStats(a, b)
+		a.tail = b
+		b.topStat = a.topStat or a
+		a.topStat = nil
+		return b
+	end
+
+	local function getTopStat(last)
+		local top = last.topStat
+		if top then
+			last.topStat = nil
+			return top
+		else
+			return last
 		end
 	end
 
@@ -274,7 +282,10 @@ local function createLuaGrammar()
 	--
 
 	rules.Chunk = spaces * V"Block"
-	rules.Block = tagWrap('Block', tagP('statements', Ct(V"Stat"^0 * V"ReturnStat"^-1)))
+	rules.Block = tagWrap('Block', tagP('statements', Cf(
+		tagWrap('Cons', tagP('head', V"Stat"))^0 * tagWrap('Cons', tagP('head', V"ReturnStat"))^-1
+			* Cc({tag='EmptyList'}), nestStats) / getTopStat
+	))
 
 	-- Statement
 	rules.Stat =
@@ -309,7 +320,7 @@ local function createLuaGrammar()
 		+ tagWrap('Do', Do * tagP('body', V"Block") * End)
 
 		-- While loop
-		+ tagWrap('While', While * tagP('contition', V"Exp") * Do * tagP('body', V"Block") * End)
+		+ tagWrap('While', While * tagP('condition', V"Exp") * Do * tagP('body', V"Block") * End)
 
 		-- Repeat until loop
 		+ tagWrap('Repeat', Repeat * tagP('body', V"Block") * Until * tagP('condition', V"Exp"))
@@ -365,17 +376,17 @@ local function createLuaGrammar()
 
 	-- Functions ending in ':methodName'
 	rules.FunctionNameWithMethod = tagWrap('MethodDef',
-		tagP('exp', V"FunctionWithIndex" / function(a) dump(a) if a.tag == 'Var' then a.tag = 'VarExp' end return a end)
+		tagP('exp', V"FunctionWithIndex" / function(a) if a.tag == 'Var' then a.tag = 'VarExp' end return a end)
 		* colon * tagP('index', tagWrap('StringLiteral', tagP('literal', V"Name")))
 	)
 
 
 	rules.IfStatement = Cf(
 		-- Topmost if
-		tagWrap('IfStatement', If * tagP('condition', V"Exp") * Then * tagP('body', V"Block"))
+		tagWrap('IfStatement', If * tagP('condition', V"Exp") * Then * tagP('thenBody', V"Block"))
 
 		-- Followed by zero or more elseif
-		* (tagWrap('IfStatement', Elseif * tagP('condition', V"Exp") * Then * tagP('body', V"Block")))^0
+		* (tagWrap('IfStatement', Elseif * tagP('condition', V"Exp") * Then * tagP('thenBody', V"Block")))^0
 
 		-- Followed optionally by an else
 		* optional(Cg(Else * V"Block"), false) * End,
@@ -390,7 +401,7 @@ local function createLuaGrammar()
 	rules.VarList = Ct(V"Var" * (comma * V"Var")^0)
 	rules.Var = Cf(V"ExpPrefix" * V"VarSuffix", nestExpression)
 		+ tagWrap('Var', tagP('name', V"Name"))
-	rules.VarSuffix = (V"CallSuffix")^0 * V"Indexation" * (V"VarSuffix")^-1
+	rules.VarSuffix = (V"CallSuffix")^0 * (V"Indexation" / function(i) i.tag = 'Indexation' return i end) * (V"VarSuffix")^-1
 
 
 	rules.ExpList = V"Exp" * (comma * V"Exp")^0
@@ -428,8 +439,8 @@ local function createLuaGrammar()
 	rules.ExpPrefix = tagWrap('VarExp', tagP('name', V"Name"))
 		+ open_paren * V"Exp" * close_paren
 
-	rules.Indexation = dot * tagWrap('Indexation', tagP('index', tagWrap('StringLiteral', tagP('literal', V"Name"))))
-		+ open_square * tagWrap('Indexation', tagP('index', V"Exp")) * close_square
+	rules.Indexation = dot * tagWrap('IndexationExp', tagP('index', tagWrap('StringLiteral', tagP('literal', V"Name"))))
+		+ open_square * tagWrap('IndexationExp', tagP('index', V"Exp")) * close_square
 
 	rules.CallSuffix = tagWrap("FunctionCall", tagP('args', V"Args"))
 		+ tagWrap("MethodCall", colon * tagP('method', V"Name") * tagP('args', V"Args"))
@@ -461,9 +472,8 @@ end
 
 local grammar = createLuaGrammar()
 
-
 -- Parser/Evaluator
-local function parse (s, _)
+local function parse(s, _)
 	local t = lpeg.match(P(grammar), s)
 	if t then
 		return t
@@ -471,27 +481,6 @@ local function parse (s, _)
 	end
 end
 
---[[
-
-function readAll(file)
-	local f = assert(io.open(file, "rb"))
-	local content = f:read("*all")
-	f:close()
-	return content
-end
-
-
---print(parse"a = (1+2+a[4](5)*b()[7])[8]^-10, true, false")
-
--- local content = readAll"expParser.lua"
--- local parsed = parse(content)
--- print(string.sub(content, 1, parsed))
-
---]]
-
-dump(parse"if true then elseif true then end")
---local a a = function() end
---"function a() end"
 return {parse = parse}
 --[[
 

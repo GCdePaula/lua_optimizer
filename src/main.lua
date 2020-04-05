@@ -1,17 +1,28 @@
-print(arg[0])
-print"bananas"
-
 package.path = package.path .. ";./libs/?.lua"
 package.cpath = package.path .. ";./libs/?/?.so"
 
-local bb = require "b"
-local xx = require "xx.a"
-local yy = require "yy.a"
-local pretty = require "pl.pretty"
-local lpeg = require "lpeg"
+pretty = require "pl.pretty"
+local parser = require "parser"
+local prepare = require "prepareAst"
 
-local t = {1, 2, 3, a = "a", b = "b"}
 
-print(xx, yy, bb)
+local params = {...}
+local filepath = params[1]
 
-pretty.dump(t)
+local function readFile(path)
+	local file = io.open(path, "rb")
+	if not file then return nil end
+	local content = file:read "*all"
+	file:close()
+	return content
+end
+
+local content = readFile(filepath)
+
+if content then
+	local ast = parser.parse(content)
+	pretty.dump(ast)
+	local startEdge = prepare(ast)
+	pretty.dump(startEdge)
+end
+
