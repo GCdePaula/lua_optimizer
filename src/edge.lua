@@ -1,15 +1,26 @@
+local Cell = require "lattice.cell"
 local Edge = {}
 
-function Edge:InitStartEdge(env)
-	local startNode = {tag = "StartNode", outLatticeCell = env:newLatticeCell()}
-	return self:InitWithFromNode(startNode)
-end
-
 function Edge:InitWithFromNode(node)
-	local newEdge = {_fromNode = node}
+	local newEdge = {_fromNode = node, _executable = false}
 	setmetatable(newEdge, self)
 	self.__index = self
 	return newEdge
+end
+
+function Edge:InitStartEdge()
+	local startNode = {tag = "StartNode", outCell = Cell:InitWithScope({})}
+	return self:InitWithFromNode(startNode)
+end
+
+-- Returns if edge is executable
+function Edge:isExecutable()
+	return self._executable
+end
+
+-- Marks edge as executable
+function Edge:setExecutable()
+	self._executable = true
 end
 
 

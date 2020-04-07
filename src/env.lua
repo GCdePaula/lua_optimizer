@@ -1,4 +1,4 @@
-local LatticeCell = require "latticeCell"
+local LatticeCell = require "lattice.cell"
 
 local Env = {}
 

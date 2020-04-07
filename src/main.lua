@@ -4,6 +4,7 @@ package.cpath = package.path .. ";./libs/?/?.so"
 pretty = require "pl.pretty"
 local parser = require "parser"
 local prepare = require "prepareAst"
+local findFixedPoint = require "abstractInterp"
 
 
 local params = {...}
@@ -21,8 +22,10 @@ local content = readFile(filepath)
 
 if content then
 	local ast = parser.parse(content)
-	pretty.dump(ast)
-	local startEdge = prepare(ast)
-	pretty.dump(startEdge)
+	-- pretty.dump(ast)
+	local _, startEdge, endNode = prepare(ast)
+	-- pretty.dump(startEdge)
+	findFixedPoint(startEdge)
+	pretty.dump(endNode.inEdges[1]:getFromNode().outCell)
 end
 
