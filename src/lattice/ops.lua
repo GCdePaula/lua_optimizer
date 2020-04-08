@@ -145,4 +145,52 @@ op["or"] = function(e1, e2)
 	end
 end
 
+
+-- Compare ops
+op["<"] = function(e1, e2)
+	local b1, n1 = e1:getNumber()
+	local b2, n2 = e2:getNumber()
+	if b1 and b2 then return Element:InitWithBool(n1 < n2)
+	else return Element:InitWithBottom() end
+end
+
+op["<="] = function(e1, e2)
+	local b1, n1 = e1:getNumber()
+	local b2, n2 = e2:getNumber()
+	if b1 and b2 then return Element:InitWithBool(n1 <= n2)
+	else return Element:InitWithBottom() end
+end
+
+op[">"] = function(e1, e2)
+	local b1, n1 = e1:getNumber()
+	local b2, n2 = e2:getNumber()
+	if b1 and b2 then return Element:InitWithBool(n1 > n2)
+	else return Element:InitWithBottom() end
+end
+
+op[">="] = function(e1, e2)
+	local b1, n1 = e1:getNumber()
+	local b2, n2 = e2:getNumber()
+	if b1 and b2 then return Element:InitWithBool(n1 >= n2)
+	else return Element:InitWithBottom() end
+end
+
+op["=="] = function(e1, e2)
+	if e1:isBottom() or e2:isBottom()
+		or e1:isTop() or e2:isTop() then
+		return Element:InitWithBottom()
+	else
+		return Element:InitWithBool(e1:compare(e2))
+	end
+end
+
+op["~="] = function(e1, e2)
+	if e1:isBottom() or e2:isBottom()
+		or e1:isTop() or e2:isTop() then
+		return Element:InitWithBottom()
+	else
+		return Element:InitWithBool(not e1:compare(e2))
+	end
+end
+
 return op

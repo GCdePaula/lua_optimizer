@@ -86,10 +86,6 @@ end
 function prepareStatement.While(node, inEdges, env)
 	local condition, body = node.condition, node.body
 
-	-- Set inEdges
-	setToEdges(inEdges, node)
-	node.inEdges = inEdges
-
 	-- Set latticeCell
 	dispatchPrepareExp(condition, env)
 	node.inCell = env:newLatticeCell()
@@ -100,11 +96,13 @@ function prepareStatement.While(node, inEdges, env)
 	node.trueEdge = trueEdge
 	node.falseEdge = falseEdge
 
-	-- Set outEdges
-	local outEdges = dispatchPrepareStat(body, {trueEdge}, env)
-	table.insert(outEdges, falseEdge)
+	-- Set edges
+	local bodyOutEdges = dispatchPrepareStat(body, {trueEdge}, env)
+	concatArrays(inEdges, bodyOutEdges)
+	setToEdges(inEdges, node)
+	node.inEdges = inEdges
 
-	return outEdges
+	return {falseEdge}
 end
 
 function prepareStatement.IfStatement(node, inEdges, env)

@@ -1,0 +1,418 @@
+{
+  condition = {
+    literal = true,
+    tag = "BoolLiteral"
+  },
+  elseBody = {
+    statements = {
+      head = {
+        exps = {
+          {
+            literal = 2,
+            tag = "IntLiteral"
+          }
+        },
+        inCell = {
+          _vars = {
+            {
+              _element = {
+                tag = "Top"
+              },
+              _index = 1,
+              _name = "a"
+            }
+          }
+        },
+        inEdges = {
+          _executable = false,
+          _fromNode = <cycle>
+        },
+        outCell = {
+          _vars = {
+            {
+              _element = {
+                tag = "Top"
+              },
+              _index = 1,
+              _name = "a"
+            }
+          }
+        },
+        outEdge = {
+          _executable = false,
+          _fromNode = <cycle>,
+          _toNode = {
+            exps = {
+            },
+            inCell = {
+              _vars = {
+                {
+                  _element = {
+                    tag = "Top"
+                  },
+                  _index = 1,
+                  _name = "a"
+                }
+              }
+            },
+            inEdges = {
+              {
+                _executable = false,
+                _fromNode = {
+                  exps = {
+                    {
+                      literal = 1,
+                      tag = "IntLiteral"
+                    }
+                  },
+                  inCell = {
+                    _vars = {
+                      {
+                        _element = {
+                          tag = "Top"
+                        },
+                        _index = 1,
+                        _name = "a"
+                      }
+                    }
+                  },
+                  inEdges = {
+                    _executable = true,
+                    _fromNode = <cycle>
+                  },
+                  outCell = {
+                    _vars = {
+                      {
+                        _element = {
+                          tag = "Top"
+                        },
+                        _index = 1,
+                        _name = "a"
+                      }
+                    }
+                  },
+                  outEdge = <cycle>,
+                  tag = "Assign",
+                  vars = {
+                    {
+                      name = "a",
+                      tag = "Var"
+                    }
+                  }
+                },
+                _toNode = <cycle>
+              },
+              <cycle>
+            },
+            outCell = {
+              _vars = {
+                {
+                  _element = {
+                    tag = "Top"
+                  },
+                  _index = 1,
+                  _name = "a"
+                },
+                {
+                  _element = {
+                    tag = "Top"
+                  },
+                  _index = 2,
+                  _name = "b"
+                }
+              }
+            },
+            outEdge = {
+              _executable = false,
+              _fromNode = <cycle>,
+              _toNode = {
+                inEdges = {
+                  <cycle>
+                },
+                tag = "EndNode"
+              }
+            },
+            tag = "LocalAssign",
+            vars = {
+              {
+                attribute = false,
+                name = "b",
+                tag = "LocalVar"
+              }
+            }
+          }
+        },
+        tag = "Assign",
+        vars = {
+          {
+            name = "a",
+            tag = "Var"
+          }
+        }
+      },
+      tag = "Cons",
+      tail = {
+        tag = "EmptyList"
+      }
+    },
+    tag = "Block"
+  },
+  elseEdge = {
+    _executable = false,
+    _fromNode = <cycle>
+  },
+  inCell = {
+    _vars = {
+      {
+        _element = {
+          number = 0,
+          tag = "Number"
+        },
+        _index = 1,
+        _name = "a"
+      }
+    }
+  },
+  inEdges = {
+    {
+      _executable = true,
+      _fromNode = {
+        exps = {
+          {
+            literal = 0,
+            tag = "IntLiteral"
+          }
+        },
+        inCell = {
+          _vars = {
+          }
+        },
+        inEdges = {
+          {
+            _executable = false,
+            _fromNode = {
+              outCell = {
+                _vars = {
+                }
+              },
+              tag = "StartNode"
+            },
+            _toNode = <cycle>
+          }
+        },
+        outCell = {
+          _vars = {
+            {
+              _element = {
+                number = 0,
+                tag = "Number"
+              },
+              _index = 1,
+              _name = "a"
+            }
+          }
+        },
+        outEdge = <cycle>,
+        tag = "LocalAssign",
+        vars = {
+          {
+            attribute = false,
+            name = "a",
+            tag = "LocalVar"
+          }
+        }
+      },
+      _toNode = <cycle>
+    }
+  },
+  outCell = {
+    _vars = {
+      {
+        _element = {
+          number = 0,
+          tag = "Number"
+        },
+        _index = 1,
+        _name = "a"
+      }
+    }
+  },
+  tag = "IfStatement",
+  thenBody = {
+    statements = {
+      head = {
+        exps = {
+          {
+            literal = 1,
+            tag = "IntLiteral"
+          }
+        },
+        inCell = {
+          _vars = {
+            {
+              _element = {
+                tag = "Top"
+              },
+              _index = 1,
+              _name = "a"
+            }
+          }
+        },
+        inEdges = {
+          _executable = true,
+          _fromNode = <cycle>
+        },
+        outCell = {
+          _vars = {
+            {
+              _element = {
+                tag = "Top"
+              },
+              _index = 1,
+              _name = "a"
+            }
+          }
+        },
+        outEdge = {
+          _executable = false,
+          _fromNode = <cycle>,
+          _toNode = {
+            exps = {
+            },
+            inCell = {
+              _vars = {
+                {
+                  _element = {
+                    tag = "Top"
+                  },
+                  _index = 1,
+                  _name = "a"
+                }
+              }
+            },
+            inEdges = {
+              <cycle>,
+              {
+                _executable = false,
+                _fromNode = {
+                  exps = {
+                    {
+                      literal = 2,
+                      tag = "IntLiteral"
+                    }
+                  },
+                  inCell = {
+                    _vars = {
+                      {
+                        _element = {
+                          tag = "Top"
+                        },
+                        _index = 1,
+                        _name = "a"
+                      }
+                    }
+                  },
+                  inEdges = {
+                    _executable = false,
+                    _fromNode = <cycle>
+                  },
+                  outCell = {
+                    _vars = {
+                      {
+                        _element = {
+                          tag = "Top"
+                        },
+                        _index = 1,
+                        _name = "a"
+                      }
+                    }
+                  },
+                  outEdge = <cycle>,
+                  tag = "Assign",
+                  vars = {
+                    {
+                      name = "a",
+                      tag = "Var"
+                    }
+                  }
+                },
+                _toNode = <cycle>
+              }
+            },
+            outCell = {
+              _vars = {
+                {
+                  _element = {
+                    tag = "Top"
+                  },
+                  _index = 1,
+                  _name = "a"
+                },
+                {
+                  _element = {
+                    tag = "Top"
+                  },
+                  _index = 2,
+                  _name = "b"
+                }
+              }
+            },
+            outEdge = {
+              _executable = false,
+              _fromNode = <cycle>,
+              _toNode = {
+                inEdges = {
+                  <cycle>
+                },
+                tag = "EndNode"
+              }
+            },
+            tag = "LocalAssign",
+            vars = {
+              {
+                attribute = false,
+                name = "b",
+                tag = "LocalVar"
+              }
+            }
+          }
+        },
+        tag = "Assign",
+        vars = {
+          {
+            name = "a",
+            tag = "Var"
+          }
+        }
+      },
+      tag = "Cons",
+      tail = {
+        tag = "EmptyList"
+      }
+    },
+    tag = "Block"
+  },
+  thenEdge = {
+    _executable = true,
+    _fromNode = <cycle>
+  }
+}
+{
+  _vars = {
+    {
+      _element = {
+        number = 1,
+        tag = "Number"
+      },
+      _index = 1,
+      _name = "a"
+    },
+    {
+      _element = {
+        tag = "Nil"
+      },
+      _index = 2,
+      _name = "b"
+    }
+  }
+}

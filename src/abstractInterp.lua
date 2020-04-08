@@ -187,7 +187,6 @@ function processStat.While(node, workList)
 			else
 				workList:addEdge(falseEdge)
 			end
-
 		else
 			-- Both branches must be taken
 			workList:addEdge(trueEdge)
@@ -209,10 +208,6 @@ local function findFixedPoint(startEdge)
 
 	repeat
 		local node = edge:getToNode()
-
-		-- if not node then pretty.dump(edge:getFromNode()) end
-
-
 		dispatchProcessStat(node, workList)
 		edge = workList:pop()
 	until not edge
