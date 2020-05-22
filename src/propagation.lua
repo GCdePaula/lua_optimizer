@@ -147,16 +147,6 @@ local function dispatchPropagateStatFromEdge(edge)
 	end
 end
 
--- local function propagateStatementList(list)
--- 	if list.tag == "EmptyList" then
--- 		return
--- 	end
--- 	local head = list.head
--- 	local tail = list.tail
--- 	dispatchPropagateStat(head)
--- 	return propagateStatementList(tail)
--- end
-
 local function propagateAssign(node)
 	local exps = node.exps
 	for _,exp in ipairs(exps) do

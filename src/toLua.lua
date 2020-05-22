@@ -1,8 +1,20 @@
 local LuaOps = require "luaOps"
 
-
 local function wrapParentheses(str)
 	return '(' .. str .. ')'
+end
+
+local function findMaxEquals(str)
+	local max = -1
+	for word in str:gmatch("%[=*%[") do
+		local len = string.len(word)
+		max = math.max(max, len - 2)
+	end
+	for word in str:gmatch("%]=*%]") do
+		local len = string.len(word)
+		max = math.max(max, len - 2)
+	end
+	return max
 end
 
 local function indentation(depth)
@@ -45,6 +57,19 @@ end})
 
 function stringOfExp.NumberLiteral(exp)
 	return tostring(exp.literal)
+end
+
+function stringOfExp.BoolLiteral(exp)
+	return tostring(exp.literal)
+end
+
+function stringOfExp.StringLiteral(exp)
+	local str = exp.literal
+	local max = findMaxEquals(str)
+
+	local equals = string.rep('=', max+1)
+
+	return '[' .. equals .. '[' .. str .. ']' .. equals .. ']'
 end
 
 function stringOfExp.VarExp(exp)
