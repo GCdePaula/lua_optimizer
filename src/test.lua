@@ -1,8 +1,17 @@
 
 local a = 0
+local b = a
+local c = 1 + 1
+local d = c + 1
 
-while a < 10 do
-	a = a + 1
+if d then
+  d = 2
+else
+  d = 3
 end
 
-local b
+while d do
+
+end
+
+local e = d

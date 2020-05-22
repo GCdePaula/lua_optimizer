@@ -96,7 +96,7 @@ function processStat.Assign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local inEdges, outEdge, inCell, outCell = node.inEdges, node.outEdge, node.inCell, node.outCell
 
-	outEdge:reset()
+	-- outEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -129,7 +129,7 @@ function processStat.LocalAssign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local inEdges, outEdge, inCell, outCell = node.inEdges, node.outEdge, node.inCell, node.outCell
 
-	outEdge:reset()
+	-- outEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -162,8 +162,8 @@ function processStat.IfStatement(node, workList)
 	local inEdges, thenEdge, elseEdge = node.inEdges, node.thenEdge, node.elseEdge
 	local inCell, outCell = node.inCell, node.outCell
 
-	thenEdge:reset()
-	elseEdge:reset()
+	-- thenEdge:reset()
+	-- elseEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -197,8 +197,8 @@ function processStat.While(node, workList)
 	local inEdges, trueEdge, falseEdge = node.inEdges, node.trueEdge, node.falseEdge
 	local inCell, outCell = node.inCell, node.outCell
 
-	trueEdge:reset()
-	falseEdge:reset()
+	-- trueEdge:reset()
+	-- falseEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -236,6 +236,7 @@ end
 local function findFixedPoint(startEdge)
 	local workList = newWorkList()
 	local edge = startEdge
+	startEdge:setExecutable()
 
 	repeat
 		local node = edge:getToNode()

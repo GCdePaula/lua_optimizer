@@ -137,25 +137,32 @@ end
 
 
 local propagateStat = {}
-local function dispatchPropagateStat(node)
-	return propagateStat[node.tag](node)
+local function dispatchPropagateStatFromEdge(edge)
+	if edge:isExecutable() then
+		local node = edge:getToNode()
+		if node and node.untouched then
+			node.untouched = false
+			propagateStat[node.tag](node)
+		end
+	end
 end
 
-local function propagateStatementList(list)
-	if list.tag == "EmptyList" then
-		return
-	end
-	local head = list.head
-	local tail = list.tail
-	dispatchPropagateStat(head)
-	return propagateStatementList(tail)
-end
+-- local function propagateStatementList(list)
+-- 	if list.tag == "EmptyList" then
+-- 		return
+-- 	end
+-- 	local head = list.head
+-- 	local tail = list.tail
+-- 	dispatchPropagateStat(head)
+-- 	return propagateStatementList(tail)
+-- end
 
 local function propagateAssign(node)
 	local exps = node.exps
 	for _,exp in ipairs(exps) do
 		dispatchPropagateExp(exp)
 	end
+	dispatchPropagateStatFromEdge(node.outEdge)
 end
 
 function propagateStat.Assign(node)
@@ -174,21 +181,24 @@ function propagateStat.IfStatement(node)
 
 	local testable, test = condElement:test()
 	if testable then
+		local outEdge
 		local body
 		if test then
 			-- Take only then branch
+			outEdge = node.thenEdge
 			body = node.thenBody
 		else
 			-- Take only else branch
+			outEdge = node.elseEdge
 			body = node.elseBody
 		end
 		-- propagate body
-		propagateStatementList(body.statements)
+		dispatchPropagateStatFromEdge(outEdge)
 		node.tag = 'Do'
 		node.body = body
 	else
-		propagateStatementList(node.thenBody.statements)
-		propagateStatementList(node.elseBody.statements)
+		dispatchPropagateStatFromEdge(node.thenEdge)
+		dispatchPropagateStatFromEdge(node.elseEdge)
 	end
 end
 
@@ -202,16 +212,19 @@ function propagateStat.While(node)
 	if testable then
 		if not test then
 			node.tag = 'Nop'
-			return
+			return dispatchPropagateStatFromEdge(node.falseEdge)
+		else
+			return dispatchPropagateStatFromEdge(node.trueEdge)
 		end
+	else
+		dispatchPropagateStatFromEdge(node.falseEdge)
+		dispatchPropagateStatFromEdge(node.trueEdge)
 	end
-
-	propagateStatementList(node.body.statements)
 end
 
 
-local function constantPropagation(ast)
-	propagateStatementList(ast.statements)
+local function constantPropagation(startEdge)
+	dispatchPropagateStatFromEdge(startEdge)
 end
 
 return constantPropagation

@@ -54,8 +54,11 @@ end
 local stringOfStat = {}
 
 local function dispatchStringOfStat(stat, str, depth)
-	print(stat.tag)
-	return stringOfStat[stat.tag](stat, str, depth)
+	if not stat.untouched then
+		return stringOfStat[stat.tag](stat, str, depth)
+	else
+		return str
+	end
 end
 
 local function stringOfStatList(list, depth)
@@ -113,15 +116,15 @@ function stringOfStat.IfStatement(node, str, depth)
 	local condition = node.condition
 	local thenBody, elseBody = node.thenBody, node.elseBody
 
-	str = str .. 'if ' .. dispatchStringOfExp(condition) .. ' then\n'
+	str = str .. 'if ' .. dispatchStringOfExp(condition) .. ' then'
 	str = str .. stringOfStatList(thenBody.statements, depth+1)
 
 	if elseBody then
-		str = str .. 'else\n'
+		str = str .. '\nelse'
 		str = str .. stringOfStatList(elseBody.statements, depth+1)
 	end
 
-	str = str .. string.rep('\t', depth) .. 'end'
+	str = str .. '\n' .. string.rep('\t', depth) .. 'end'
 
 	return str
 end

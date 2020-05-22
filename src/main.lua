@@ -23,12 +23,15 @@ local content = readFile(filepath)
 
 if content then
 	local ast = parser.parse(content)
+	-- local program = toLua(ast)
+	-- print(program)
 	-- pretty.dump(ast)
-
+---[[
 	local _, startEdge  = prepare(ast)
 	findFixedPoint(startEdge)
-	propagate(ast)
+	propagate(startEdge)
 	local program = toLua(ast)
 	print(program)
+	--]]
 end
 
