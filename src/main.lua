@@ -5,7 +5,8 @@ pretty = require "pl.pretty"
 local parser = require "parser"
 local prepare = require "prepareAst"
 local findFixedPoint = require "abstractInterp"
-
+local propagate = require "propagation"
+local toLua = require "toLua"
 
 local params = {...}
 local filepath = params[1]
@@ -23,9 +24,11 @@ local content = readFile(filepath)
 if content then
 	local ast = parser.parse(content)
 	-- pretty.dump(ast)
-	local _, startEdge, endNode = prepare(ast)
-	-- pretty.dump(startEdge)
+
+	local _, startEdge  = prepare(ast)
 	findFixedPoint(startEdge)
-	pretty.dump(endNode.inEdges[1]:getFromNode().outCell)
+	propagate(ast)
+	local program = toLua(ast)
+	print(program)
 end
 

@@ -270,8 +270,8 @@ local function createLuaGrammar()
 			end)
 	)
 
-	rules.FloatNumeral = tagWrap('FloatLiteral', tagP('literal', makeTerminal(C(float)) / tonumber))
-	rules.IntegerNumeral = tagWrap('IntLiteral', tagP('literal', makeTerminal(C(integer)) / tonumber))
+	rules.FloatNumeral = tagWrap('NumberLiteral', tagP('literal', makeTerminal(C(float)) / tonumber))
+	rules.IntegerNumeral = tagWrap('NumberLiteral', tagP('literal', makeTerminal(C(integer)) / tonumber))
 	rules.Numeral = V"FloatNumeral" + V"IntegerNumeral"
 
 	rules.True = tagWrap('BoolLiteral', tagP('literal', Cc(true) * Rw"true"))

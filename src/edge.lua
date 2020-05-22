@@ -23,6 +23,9 @@ function Edge:setExecutable()
 	self._executable = true
 end
 
+function Edge:reset()
+	self._executable = false
+end
 
 -- Returns from node
 function Edge:getFromNode()

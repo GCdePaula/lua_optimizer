@@ -1,0 +1,217 @@
+local LuaOps = require "luaOps"
+
+--[[
+local function makeTag(tp)
+	if tp == 'string' then return 'StringLiteral'
+	elseif tp == 'number' then return 'NumberLiteral'
+	elseif tp == 'bool' then return 'BoolLiteral'
+	elseif tp == nil then return 'Nil'
+end
+--]]
+
+local propagateExp = {}
+local function dispatchPropagateExp(exp)
+	local isConstant, literal, tag = exp.element:getConstant()
+	if isConstant then
+		exp.tag = tag
+		exp.literal = literal
+	else
+		propagateExp[exp.tag](exp)
+	end
+end
+
+setmetatable(propagateExp, {__index = function(_)
+	return function(node)
+		local tag = node.tag
+		if LuaOps.binops[tag] then
+			local lhs, rhs = node.lhs, node.rhs
+
+			-- I don't think this matters
+			if tag == '^' then
+				dispatchPropagateExp(rhs)
+				dispatchPropagateExp(lhs)
+			else
+				dispatchPropagateExp(lhs)
+				dispatchPropagateExp(rhs)
+			end
+
+			local isNumber1, n1 = lhs.tag == 'NumberLiteral', lhs.literal
+			local isNumber2, n2 = rhs.tag == 'NumberLiteral', rhs.literal
+
+			if isNumber1 and isNumber2 then
+				local literal = LuaOps.makeOp(tag, n1, n2)
+				node.lhs, node.rhs = nil, nil
+				node.tag = 'NumberLiteral'
+				node.literal = literal
+			end
+		elseif LuaOps.cmpops[tag] then
+			local lhs, rhs = node.lhs, node.rhs
+			dispatchPropagateExp(lhs)
+			dispatchPropagateExp(rhs)
+
+			local literalTag = lhs.tag
+			local compatible = lhs.tag == rhs.tag
+			local comparable = literalTag == 'StringLiteral' or literalTag == 'NumberLiteral'
+
+			if compatible and comparable then
+				local literal = LuaOps.makeOp(tag, lhs.literal, rhs.literal)
+				node.lhs, node.rhs = nil, nil
+				node.tag = literalTag
+				node.literal = literal
+			end
+
+		elseif LuaOps.unops[tag] then
+			local exp = node.exp
+			dispatchPropagateExp(exp)
+
+			local isNumber, n = exp.tag == 'NumberLiteral', exp.literal
+
+			if isNumber then
+				local literal = LuaOps.makeOp(tag, n)
+				node.exp = nil
+				node.tag = 'NumberLiteral'
+				node.literal = literal
+			end
+		else
+			error("Tag for prepare exp not implemented " .. tag)
+		end
+	end
+end
+})
+
+propagateExp['and'] = function(node)
+	local lhs, rhs = node.lhs, node.rhs
+	dispatchPropagateExp(lhs)
+
+	local isLhsTestable, lhsTest = lhs.element:test()
+	if isLhsTestable then
+		if not lhsTest then
+			-- Eliminate rhs. Node becomes lhs.
+			for k,v in pairs(lhs) do
+				node[k] = v
+			end
+			return
+		end
+	end
+	dispatchPropagateExp(rhs)
+end
+
+propagateExp['or'] = function(node)
+	local lhs, rhs = node.lhs, node.rhs
+	dispatchPropagateExp(lhs)
+
+	local isLhsTestable, lhsTest = lhs.element:test()
+	if isLhsTestable then
+		if lhsTest then
+			-- Eliminate rhs. Node becomes lhs.
+			for k,v in pairs(lhs) do
+				node[k] = v
+			end
+			return
+		end
+	end
+	dispatchPropagateExp(rhs)
+end
+
+propagateExp['=='] = function(node)
+	error("Tag for prepare exp not implemented " .. node.tag)
+end
+
+propagateExp['~='] = function (node)
+	error("Tag for prepare exp not implemented " .. node.tag)
+end
+
+propagateExp['not'] = function (node)
+	error("Tag for prepare exp not implemented " .. node.tag)
+end
+
+propagateExp['#'] = function (node)
+	error("Tag for prepare exp not implemented " .. node.tag)
+end
+
+
+propagateExp['VarExp'] = function(_, _)
+	-- Do nothing. If it got here there's nothing to
+	-- be done.
+end
+
+
+local propagateStat = {}
+local function dispatchPropagateStat(node)
+	return propagateStat[node.tag](node)
+end
+
+local function propagateStatementList(list)
+	if list.tag == "EmptyList" then
+		return
+	end
+	local head = list.head
+	local tail = list.tail
+	dispatchPropagateStat(head)
+	return propagateStatementList(tail)
+end
+
+local function propagateAssign(node)
+	local exps = node.exps
+	for _,exp in ipairs(exps) do
+		dispatchPropagateExp(exp)
+	end
+end
+
+function propagateStat.Assign(node)
+	propagateAssign(node)
+end
+
+function propagateStat.LocalAssign(node)
+	propagateAssign(node)
+end
+
+function propagateStat.IfStatement(node)
+	local condition = node.condition
+	dispatchPropagateExp(condition)
+
+	local condElement = condition.element
+
+	local testable, test = condElement:test()
+	if testable then
+		local body
+		if test then
+			-- Take only then branch
+			body = node.thenBody
+		else
+			-- Take only else branch
+			body = node.elseBody
+		end
+		-- propagate body
+		propagateStatementList(body.statements)
+		node.tag = 'Do'
+		node.body = body
+	else
+		propagateStatementList(node.thenBody.statements)
+		propagateStatementList(node.elseBody.statements)
+	end
+end
+
+function propagateStat.While(node)
+	local condition = node.condition
+	dispatchPropagateExp(condition)
+
+	local condElement = condition.element
+
+	local testable, test = condElement:test()
+	if testable then
+		if not test then
+			node.tag = 'Nop'
+			return
+		end
+	end
+
+	propagateStatementList(node.body.statements)
+end
+
+
+local function constantPropagation(ast)
+	propagateStatementList(ast.statements)
+end
+
+return constantPropagation

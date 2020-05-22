@@ -24,17 +24,32 @@ local function dispatchProcessExp(exp, cell)
 end
 
 setmetatable(processExp, {__index = function(_)
-		return function(node, env)
+		return function(node, cell)
 			local tag = node.tag
 			if LuaOps.binops[tag] or
 				LuaOps.cmpops[tag] or
 				LuaOps.logbinops[tag] then
-				local e1 = dispatchProcessExp(node.lhs, env)
-				local e2 = dispatchProcessExp(node.rhs, env)
-				return Ops[tag](e1, e2)
+
+				local e1
+				local e2
+				if tag == '^' then
+					e1 = dispatchProcessExp(node.lhs, cell)
+					e2 = dispatchProcessExp(node.rhs, cell)
+				else
+					e2 = dispatchProcessExp(node.rhs, cell)
+					e1 = dispatchProcessExp(node.lhs, cell)
+				end
+
+				local newElement = Ops[tag](e1, e2)
+				node.element = newElement
+				return newElement
+
 			elseif LuaOps.unops[tag] or LuaOps.logunops[tag] then
-				local e = dispatchProcessExp(node.exp, env)
-				return Ops[tag](e)
+				local e = dispatchProcessExp(node.exp, cell)
+				local newElement = Ops[tag](e)
+				node.element = newElement
+				return newElement
+
 			else
 				error("Tag for prepare exp not implemented " .. tag)
 			end
@@ -42,28 +57,34 @@ setmetatable(processExp, {__index = function(_)
 	end
 })
 
-function processExp.Nil(_, _)
-	return Element:InitWithNil()
+function processExp.Nil(node, _)
+	local newElement = Element:InitWithNil()
+	node.element = newElement
+	return newElement
 end
 
 function processExp.StringLiteral(node, _)
-	return Element:InitWithString(node.literal)
+	local newElement = Element:InitWithString(node.literal)
+	node.element = newElement
+	return newElement
 end
 
-function processExp.IntLiteral(node, _)
-	return Element:InitWithNumber(node.literal)
-end
-
-function processExp.FloatLiteral(node, _)
-	return Element:InitWithNumber(node.literal)
+function processExp.NumberLiteral(node, _)
+	local newElement = Element:InitWithNumber(node.literal)
+	node.element = newElement
+	return newElement
 end
 
 function processExp.BoolLiteral(node, _)
-	return Element:InitWithBool(node.literal)
+	local newElement = Element:InitWithBool(node.literal)
+	node.element = newElement
+	return newElement
 end
 
 function processExp.VarExp(node, cell)
-	return cell:getVar(node.name):getElement()
+	local newElement = cell:getVar(node.name):getElement()
+	node.element = newElement
+	return newElement
 end
 
 local processStat = {}
@@ -74,6 +95,8 @@ end
 function processStat.Assign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local inEdges, outEdge, inCell, outCell = node.inEdges, node.outEdge, node.inCell, node.outCell
+
+	outEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -106,6 +129,8 @@ function processStat.LocalAssign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local inEdges, outEdge, inCell, outCell = node.inEdges, node.outEdge, node.inCell, node.outCell
 
+	outEdge:reset()
+
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
 
@@ -136,6 +161,9 @@ function processStat.IfStatement(node, workList)
 	local condition = node.condition
 	local inEdges, thenEdge, elseEdge = node.inEdges, node.thenEdge, node.elseEdge
 	local inCell, outCell = node.inCell, node.outCell
+
+	thenEdge:reset()
+	elseEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -168,6 +196,9 @@ function processStat.While(node, workList)
 	local condition = node.condition
 	local inEdges, trueEdge, falseEdge = node.inEdges, node.trueEdge, node.falseEdge
 	local inCell, outCell = node.inCell, node.outCell
+
+	trueEdge:reset()
+	falseEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()

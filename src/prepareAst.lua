@@ -28,11 +28,11 @@ setmetatable(prepareExp, {__index = function(_)
 			elseif LuaOps.unops[tag] then
 				dispatchPrepareExp(node.exp, env)
 			elseif tag == 'StringLiteral' or
-				tag == 'IntLiteral' or
-				tag == 'FloatLiteral' or
+				tag == 'NumberLiteral' or
 				tag == 'BoolLiteral' or
 				tag == 'Nil' then
-				-- Do nothing
+					-- Do nothing
+					;
 			else
 				error("Tag for prepare exp not implemented " .. tag)
 			end
@@ -72,6 +72,7 @@ local function prepareStatementList(list, inEdges, env)
 	local head = list.head
 	local tail = list.tail
 	local outEdges = dispatchPrepareStat(head, inEdges, env)
+	head.untouched = true
 
 	return prepareStatementList(tail, outEdges, env)
 end

@@ -6,10 +6,15 @@ type latticeElement =
 	Bottom
 	Nil
 	Number of number
+		-- NumberType
 	Bool of bool
-	Func of int
+		-- BoolType
+		-- Func of int
 	String of string
-	Table of table
+		-- StringType
+		-- Table of table
+		-- Truthy
+		-- Falsy
 --]]
 
 local function init(self)
@@ -40,24 +45,30 @@ end
 function Element:InitWithNumber(n)
 	local newElement = init(self)
 	newElement.tag = "Number"
-	newElement.number = n
+	newElement.constant = n
 	return newElement
 end
 
 function Element:InitWithBool(b)
 	local newElement = init(self)
 	newElement.tag = "Bool"
-	newElement.bool = b
+	newElement.constant = b
 	return newElement
 end
 
+function Element:InitWithString(s)
+	local newElement = init(self)
+	newElement.tag = "String"
+	newElement.constant = s
+	return newElement
+end
 
 
 -- Returns true and number if number,
 -- or false if not a number.
 function Element:getNumber()
 	if self.tag == 'Number' then
-		return true, self.number
+		return true, self.constant
 	else
 		return false
 	end
@@ -67,12 +78,37 @@ end
 -- or false if not a bool.
 function Element:getBool()
 	if self.tag == 'Bool' then
-		return true, self.bool
+		return true, self.constant
 	else
 		return false
 	end
 end
 
+-- Returns true and string if String,
+-- or false if not a String.
+function Element:getString()
+	if self.tag == 'String' then
+		return true, self.constant
+	else
+		return false
+	end
+end
+
+-- Returns true, value and AST tag if constant,
+-- or false if not constant.
+function Element:getConstant()
+	if self.tag == 'Nil' then
+		return true, nil, 'Nil'
+	elseif self.tag == 'String' then
+		return true, self.constant, 'StringLiteral'
+	elseif self.tag == 'Number' then
+		return true, self.constant, 'NumberLiteral'
+	elseif self.tag == 'Bool' then
+		return true, self.constant, 'BoolLiteral'
+	else
+		return false
+	end
+end
 
 -- Returns if receiver is top.
 function Element:isTop()
@@ -89,7 +125,7 @@ function Element:isNil()
 	return self.tag == 'Nil'
 end
 
--- Returns true and bool if is constant,
+-- Returns true and bool if can be tested,
 -- or false if not constant
 function Element:test()
 	if self:isBottom() then
