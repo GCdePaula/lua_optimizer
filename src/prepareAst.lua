@@ -10,6 +10,25 @@ local function concatArrays(a, b)
 end
 
 
+local function newControlTable()
+	local control = {_loops = {}}
+
+	function control:startLoop()
+		table.insert(self._loops, {})
+	end
+
+	function control:pushBreakEdge(edge)
+		local loops = self._loops
+		local lastLoop = loops[#loops]
+		table.insert(lastLoop, edge)
+	end
+
+	function control:endLoop()
+		return table.remove(self._loops)
+	end
+
+	return control
+end
 
 local prepareExp = {}
 local function dispatchPrepareExp(node, env)
@@ -53,8 +72,9 @@ end
 
 local prepareStatement = {}
 
-local function dispatchPrepareStat(node, inEdges, env)
-	return prepareStatement[node.tag](node, inEdges, env)
+local function dispatchPrepareStat(node, inEdges, env, control)
+	print(node.tag)
+	return prepareStatement[node.tag](node, inEdges, env, control)
 end
 
 local function setToEdges(edges, target)
@@ -64,28 +84,30 @@ local function setToEdges(edges, target)
 end
 
 -- returns outEdges, and if continues
-local function prepareStatementList(list, inEdges, env)
+local function prepareStatementList(list, inEdges, env, control)
 	if list.tag == "EmptyList" then
 		return inEdges
 	end
 
 	local head = list.head
 	local tail = list.tail
-	local outEdges = dispatchPrepareStat(head, inEdges, env)
 	head.untouched = true
+	local outEdges = dispatchPrepareStat(head, inEdges, env, control)
 
-	return prepareStatementList(tail, outEdges, env)
+	return prepareStatementList(tail, outEdges, env, control)
 end
 
-prepareStatement["Block"] = function(node, inEdges, env)
+prepareStatement["Block"] = function(node, inEdges, env, control)
 	local oldScope = env:startBlock()
-	local outEdges = prepareStatementList(node.statements, inEdges, env)
+	local outEdges = prepareStatementList(node.statements, inEdges, env, control)
 	env:endBlock(oldScope)
 	return outEdges
 end
 
-function prepareStatement.While(node, inEdges, env)
+function prepareStatement.While(node, inEdges, env, control)
 	local condition, body = node.condition, node.body
+
+	control:startLoop()
 
 	-- Set latticeCell
 	dispatchPrepareExp(condition, env)
@@ -98,15 +120,18 @@ function prepareStatement.While(node, inEdges, env)
 	node.falseEdge = falseEdge
 
 	-- Set edges
-	local bodyOutEdges = dispatchPrepareStat(body, {trueEdge}, env)
+	local bodyOutEdges = dispatchPrepareStat(body, {trueEdge}, env, control)
 	concatArrays(inEdges, bodyOutEdges)
 	setToEdges(inEdges, node)
 	node.inEdges = inEdges
 
-	return {falseEdge}
+	local breakEdges = control:endLoop()
+	table.insert(breakEdges, falseEdge)
+
+	return breakEdges
 end
 
-function prepareStatement.IfStatement(node, inEdges, env)
+function prepareStatement.IfStatement(node, inEdges, env, control)
 	local condition, thenBody, elseBody = node.condition, node.thenBody, node.elseBody
 
 	-- Set inEdges
@@ -124,12 +149,12 @@ function prepareStatement.IfStatement(node, inEdges, env)
 	node.thenEdge, node.elseEdge = thenEdge, elseEdge
 
 	-- Then outEdges
-	local outEdges = dispatchPrepareStat(thenBody, {thenEdge}, env)
+	local outEdges = dispatchPrepareStat(thenBody, {thenEdge}, env, control)
 
 	-- Check if there's an else
 	if elseBody then
 		-- Else outEdges
-		local elseOutEdges = dispatchPrepareStat(elseBody, {elseEdge}, env)
+		local elseOutEdges = dispatchPrepareStat(elseBody, {elseEdge}, env, control)
 		concatArrays(outEdges, elseOutEdges)
 	else
 		-- If there's no else, else edge points to "continuation".
@@ -192,12 +217,25 @@ function prepareStatement.Assign(node, inEdges, env)
 	return {outEdge}
 end
 
+function prepareStatement.Break(node, inEdges, _, control)
+	for _,edge in ipairs(inEdges) do
+		control:pushBreakEdge(edge)
+	end
+	node.untouched = false
+	return {}
+end
 
+function prepareStatement.Nop(_, inEdges)
+	-- setToEdges(inEdges, node)
+	-- node.inEdges = inEdges
+	return inEdges
+end
 
 return function(ast)
 		local env = Env:Init()
+		local control = newControlTable()
 		local startEdge = Edge:InitStartEdge(env)
-		local endEdges = prepareStatementList(ast.statements, {startEdge}, env)
+		local endEdges = prepareStatementList(ast.statements, {startEdge}, env, control)
 		local endNode = {tag = 'EndNode', inEdges=endEdges}
 		setToEdges(endEdges, endNode)
 		return ast, startEdge, endNode

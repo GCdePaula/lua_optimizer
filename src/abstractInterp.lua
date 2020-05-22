@@ -226,6 +226,11 @@ function processStat.While(node, workList)
 	end
 end
 
+function processStat.Break(node, workList)
+	local outEdge = node.outEdge
+	workList:addEdge(outEdge)
+end
+
 function processStat.EndNode() end
 
 function processStat.Block()

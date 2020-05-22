@@ -72,6 +72,10 @@ function stringOfExp.StringLiteral(exp)
 	return '[' .. equals .. '[' .. str .. ']' .. equals .. ']'
 end
 
+function stringOfExp.Nil()
+	return 'nil'
+end
+
 function stringOfExp.VarExp(exp)
 	return exp.name
 end
@@ -170,6 +174,8 @@ function stringOfStat.Do(node, str, depth)
 	str = str .. '\n' .. indentation(depth) .. 'end'
 	return str
 end
+
+function stringOfStat.Break(_, str, _) return str .. 'break' end
 
 function stringOfStat.Nop(_, str, _) return str end
 

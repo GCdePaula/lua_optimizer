@@ -290,7 +290,7 @@ local function createLuaGrammar()
 	-- Statement
 	rules.Stat =
 		-- Empty statement
-		semicolon
+		tagWrap('Nop', semicolon)
 
 		-- Local assign
 		+ tagWrap('LocalAssign',
