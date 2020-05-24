@@ -27,9 +27,11 @@ if content then
 	-- print(program)
 	-- pretty.dump(ast)
 	local _, startEdge  = prepare(ast)
+	-- local program = toLua(ast)
+	-- print(program)
+
 	findFixedPoint(startEdge)
 	propagate(startEdge)
 	local program = toLua(ast)
 	print(program)
 end
---]]

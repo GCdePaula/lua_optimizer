@@ -9,6 +9,27 @@ local function concatArrays(a, b)
 	return a
 end
 
+local function renameVar(var, newName)
+	if newName then
+		var.name = newName
+	else
+		-- Change to global var
+		var.tag = 'Indexation'
+		var.index = {tag = 'StringLiteral', literal = var.name}
+		var.exp = {tag = 'VarExp', name = '_ENV'}
+	end
+end
+
+local function renameVarExp(varExp, newName)
+	if newName then
+		varExp.name = newName
+	else
+		-- Change to global var
+		varExp.tag = 'IndexationExp'
+		varExp.index = {tag = 'StringLiteral', literal = varExp.name}
+		varExp.exp = {tag = 'VarExp', name = '_ENV'}
+	end
+end
 
 local function newControlTable()
 	local control = {_loops = {}}
@@ -65,7 +86,8 @@ function prepareExp.IndexationExp(node, env)
 end
 
 function prepareExp.VarExp(node, env)
-	env:addVar(node.name)
+	local newName = env:getVar(node.name)
+	renameVarExp(node, newName)
 end
 
 
@@ -73,7 +95,6 @@ end
 local prepareStatement = {}
 
 local function dispatchPrepareStat(node, inEdges, env, control)
-	print(node.tag)
 	return prepareStatement[node.tag](node, inEdges, env, control)
 end
 
@@ -178,7 +199,8 @@ function prepareStatement.LocalAssign(node, inEdges, env)
 	node.inCell = env:newLatticeCell()
 
 	for _,var in ipairs(node.vars) do
-		env:newLocalVar(var.name)
+		local newName = env:newLocalVar(var.name)
+		renameVar(var, newName)
 	end
 
 	node.outCell = env:newLatticeCell()
@@ -196,7 +218,8 @@ function prepareStatement.Assign(node, inEdges, env)
 	-- Add vars to env
 	for _,var in ipairs(node.vars) do
 		if var.tag == 'Var' then
-			env:addVar(var.name)
+			local newName = env:getVar(var.name)
+			renameVar(var, newName)
 		else
 			-- indexation
 			local index = var.index

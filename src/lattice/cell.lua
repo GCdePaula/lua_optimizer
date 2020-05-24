@@ -4,13 +4,12 @@ local Element = require "lattice.element"
 local Cell = {}
 
 
-function Cell:InitWithScope(stack)
+function Cell:InitWithScope(scope)
 	local vars = {}
 	local newCell = {_vars = vars}
 
-	for idx, varName in ipairs(stack) do
-		local var = Var:InitWithNameAndIndex(varName, idx)
-		table.insert(vars, var)
+	for _, varName in pairs(scope) do
+		vars[varName] = Var:InitWithName(varName)
 	end
 
 	setmetatable(newCell, self)
@@ -18,23 +17,12 @@ function Cell:InitWithScope(stack)
 	return newCell
 end
 
-function Cell:getVarWithIndex(i)
-	return self._vars[i]
-end
-
 function Cell:getVar(name)
-	local vars = self._vars
-	for i = #vars, 1, -1 do
-		local var = vars[i]
-		if var:getName() == name then
-			return var
-		end
-	end
+	return self._vars[name]
 end
 
 function Cell:addVar(name)
-	local vars = self._vars
-	table.insert(vars, Var:InitWithNameAndIndex(name, #vars+1))
+	self._vars[name] = Var:InitWithName(name)
 end
 
 function Cell:setElementToVar(name, element)
@@ -51,19 +39,18 @@ function Cell:updateWithInEdges(edges)
 	end
 
 	local vars = self._vars
-	for k,var in ipairs(vars) do
+	for name,var in pairs(vars) do
 		var:setElement(Element:InitWithTop())
 		for _,cell in ipairs(cells) do
-			local otherVar = cell:getVarWithIndex(k)
-			assert(var._name == otherVar._name, "names do not match " .. var._name .. " " .. otherVar._name)
+			local otherVar = cell:getVar(name)
 			var:meet(otherVar)
 		end
 	end
 end
 
 function Cell:compareWithCell(cell)
-	for k,var in ipairs(self._vars)do
-		local otherVar = cell:getVarWithIndex(k)
+	for name,var in pairs(self._vars)do
+		local otherVar = cell:getVar(name)
 		if not var:equal(otherVar) then
 			return false
 		end
@@ -76,8 +63,8 @@ function Cell:copy()
 	local vars = {}
 	local newCell = {_vars = vars}
 
-	for _, var in ipairs(self._vars) do
-		table.insert(vars, var:copy())
+	for name, var in pairs(self._vars) do
+		vars[name] = var:copy()
 	end
 
 	setmetatable(newCell, getmetatable(self))

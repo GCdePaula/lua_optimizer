@@ -2,8 +2,8 @@ local Element = require "lattice.element"
 
 local Var = {}
 
-function Var:InitWithNameAndIndex(name, index)
-	local newVar = {_name = name, _index = index}
+function Var:InitWithName(name)
+	local newVar = {_name = name}
 	newVar._element = Element:InitWithTop()
 	setmetatable(newVar, self)
 	self.__index = self
@@ -12,10 +12,6 @@ end
 
 function Var:getName()
 	return self._name
-end
-
-function Var:getIndex()
-	return self._index
 end
 
 function Var:getElement()
@@ -32,7 +28,6 @@ end
 
 function Var:equal(otherVar)
 	if self:getName() == otherVar:getName() and
-		self:getIndex() == otherVar:getIndex() and
 		self:getElement():compare(otherVar:getElement()) then
 		return true
 	else
@@ -43,7 +38,6 @@ end
 function Var:copy()
 	local newVar = {}
 	newVar._name = self:getName()
-	newVar._index = self:getIndex()
 	newVar._element = self:getElement():copy()
 
 	setmetatable(newVar, getmetatable(self))

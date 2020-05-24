@@ -41,11 +41,17 @@ local function createLuaGrammar()
 			local capture = string.sub(subject, i, begins-1)
 			return ends + 1, capture
 		end)
+
+	local long_string_no_capture = Cmt(P"[" * C(P"="^0) * P"[" * P"\n"^-1,
+		function (subject, i, equals)
+			local _, ends = string.find(subject, string.format("]%s]", equals), i, true)
+			return ends + 1
+		end)
 	--
 
 	-- Comments
 	local singleline_comment = P'--' * (1 - S'\r\n\f')^0
-	local multiline_comment = P'--' * long_string
+	local multiline_comment = P'--' * long_string_no_capture --long_string
 	local comment = multiline_comment + singleline_comment
 	--
 
@@ -163,7 +169,6 @@ local function createLuaGrammar()
 	end
 
 	local function nestExpression(a, b)
-		dump(a)
 		if b.tag == 'FunctionCall' then
 			b.func = a
 		elseif b.tag == 'MethodCall' then

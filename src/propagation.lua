@@ -212,9 +212,9 @@ function propagateStat.While(node)
 	end
 end
 
-function propagateStat.Break(node)
-	dispatchPropagateStatFromEdge(node.outEdge)
-end
+-- function propagateStat.Break(node)
+-- 	dispatchPropagateStatFromEdge(node.outEdge)
+-- end
 
 local function constantPropagation(startEdge)
 	dispatchPropagateStatFromEdge(startEdge)

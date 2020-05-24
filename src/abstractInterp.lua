@@ -113,7 +113,7 @@ function processStat.Assign(node, workList)
 			if var.tag == 'Var' then
 				cell:setElementToVar(var.name, expElement)
 			else
-				error("Assign to indexation!")
+				-- error("Assign to indexation!")
 			end
 		end
 	end
@@ -245,6 +245,7 @@ local function findFixedPoint(startEdge)
 
 	repeat
 		local node = edge:getToNode()
+		print(node.tag)
 		dispatchProcessStat(node, workList)
 		edge = workList:pop()
 	until not edge

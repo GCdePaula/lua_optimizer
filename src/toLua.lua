@@ -48,6 +48,7 @@ setmetatable(stringOfExp, {__index = function(_)
 			str = tag .. dispatchStringOfExp(exp.exp)
 
 		else
+			pretty.dump(exp)
 			error('stringOfExp tag not implemented ' .. tag)
 		end
 
@@ -65,10 +66,17 @@ end
 
 function stringOfExp.StringLiteral(exp)
 	local str = exp.literal
+
+	if exp.shortString then
+		if string.find(str, '"') then
+			return "'" .. exp.literal .. "'"
+		else
+			return '"' .. exp.literal .. '"'
+		end
+	end
+
 	local max = findMaxEquals(str)
-
 	local equals = string.rep('=', max+1)
-
 	return '[' .. equals .. '[' .. str .. ']' .. equals .. ']'
 end
 
@@ -80,10 +88,20 @@ function stringOfExp.VarExp(exp)
 	return exp.name
 end
 
+function stringOfExp.IndexationExp(node)
+	local index, exp = node.index, node.exp
+	index.shortString = true
+	local indexStr = dispatchStringOfExp(index)
+	local expStr = dispatchStringOfExp(exp)
+
+	return expStr .. '[' .. indexStr .. ']'
+end
+
 local stringOfStat = {}
 
 local function dispatchStringOfStat(stat, str, depth)
 	if not stat.untouched then
+	-- if stat.untouched then
 		return stringOfStat[stat.tag](stat, str, depth)
 	else
 		return str
@@ -107,15 +125,31 @@ end
 function stringOfStat.Assign(stat, str)
 	local vars, exps = stat.vars, stat.exps
 
-	for i=1,#vars-1 do
-		str = str .. vars[i] .. ", "
-	end
-	str = str .. vars[#vars].name .. ' = '
+	local varStrs = {}
+	for _,var in ipairs(vars) do
+		local varStr
 
-	for i=1,#exps-1 do
-		str = str .. dispatchStringOfExp(exps[i]) .. ", "
+		if var.tag == 'Var' then
+			varStr = var.name
+		else
+			local index = var.index
+			index.shortString = true
+			local exp = var.exp
+			local indexStr = dispatchStringOfExp(index)
+			local expStr = dispatchStringOfExp(exp)
+			varStr = expStr .. '[' .. indexStr .. ']'
+		end
+
+		table.insert(varStrs, varStr)
 	end
-	str = str .. dispatchStringOfExp(exps[#exps])
+	str = str .. table.concat(varStrs, ', ') .. ' = '
+
+	local expStrs = {}
+	for _,exp in ipairs(exps) do
+		local expStr = dispatchStringOfExp(exp)
+		table.insert(expStrs, expStr)
+	end
+	str = str .. table.concat(expStrs, ', ')
 
 	return str
 end
