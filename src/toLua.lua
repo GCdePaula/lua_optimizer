@@ -4,6 +4,7 @@ local function wrapParentheses(str)
 	return '(' .. str .. ')'
 end
 
+--[[
 local function findMaxEquals(str)
 	local max = -1
 	for word in str:gmatch("%[=*%[") do
@@ -20,6 +21,7 @@ end
 local function indentation(depth)
 	return string.rep('\t', depth)
 end
+--]]
 
 local stringOfExp = {}
 local function dispatchStringOfExp(exp)
@@ -65,19 +67,7 @@ function stringOfExp.BoolLiteral(exp)
 end
 
 function stringOfExp.StringLiteral(exp)
-	local str = exp.literal
-
-	if exp.shortString then
-		if string.find(str, '"') then
-			return "'" .. exp.literal .. "'"
-		else
-			return '"' .. exp.literal .. '"'
-		end
-	end
-
-	local max = findMaxEquals(str)
-	local equals = string.rep('=', max+1)
-	return '[' .. equals .. '[' .. str .. ']' .. equals .. ']'
+	return string.format("%q", exp.literal)
 end
 
 function stringOfExp.Nil()
@@ -90,7 +80,6 @@ end
 
 function stringOfExp.IndexationExp(node)
 	local index, exp = node.index, node.exp
-	index.shortString = true
 	local indexStr = dispatchStringOfExp(index)
 	local expStr = dispatchStringOfExp(exp)
 
@@ -108,113 +97,105 @@ local function dispatchStringOfStat(stat, str, depth)
 	end
 end
 
-local function stringOfStatList(list, depth)
+local function stringOfStatList(list, buffer, depth)
 	local head = list.head
-	local str = ""
 
 	while head do
-		local indent = string.rep('\t', depth)
-		str = dispatchStringOfStat(head, str .. '\n' .. indent , depth)
+		dispatchStringOfStat(head, buffer, depth)
 		list = list.tail
 		head = list.head
 	end
-
-	return str
 end
 
-function stringOfStat.Assign(stat, str)
+function stringOfStat.Assign(stat, buffer, depth)
 	local vars, exps = stat.vars, stat.exps
 
-	local varStrs = {}
+	local varBuffer = {}
 	for _,var in ipairs(vars) do
-		local varStr
-
 		if var.tag == 'Var' then
-			varStr = var.name
+			table.insert(varBuffer, var.name)
 		else
-			local index = var.index
-			index.shortString = true
-			local exp = var.exp
-			local indexStr = dispatchStringOfExp(index)
-			local expStr = dispatchStringOfExp(exp)
-			varStr = expStr .. '[' .. indexStr .. ']'
+			local indexStr = dispatchStringOfExp(var.index)
+			local expStr = dispatchStringOfExp(var.exp)
+			table.insert(varBuffer, expStr .. '[ ' .. indexStr .. ' ]')
 		end
-
-		table.insert(varStrs, varStr)
 	end
-	str = str .. table.concat(varStrs, ', ') .. ' = '
 
-	local expStrs = {}
+	local expBuffer = {}
 	for _,exp in ipairs(exps) do
-		local expStr = dispatchStringOfExp(exp)
-		table.insert(expStrs, expStr)
+		table.insert(expBuffer, dispatchStringOfExp(exp))
 	end
-	str = str .. table.concat(expStrs, ', ')
 
-	return str
+	table.insert(buffer, depth ..
+		table.concat(varBuffer, ', ') .. ' = ' .. table.concat(expBuffer, ', '))
 end
 
-function stringOfStat.LocalAssign(stat, str)
+function stringOfStat.LocalAssign(stat, buffer, depth)
 	local vars, exps = stat.vars, stat.exps
-	str = str .. 'local '
 
-	for i=1,#vars-1 do
-		str = str .. vars[i] .. ", "
+	local varBuffer = {}
+	for _,var in ipairs(vars) do
+		table.insert(varBuffer, var.name)
 	end
-	str = str .. vars[#vars].name
 
+	local expBuffer = {}
 	if #exps ~= 0 then
-		str = str .. ' = '
-		for i=1,#exps-1 do
-			str = str .. dispatchStringOfExp(exps[i]) .. ", "
+		for _,exp in ipairs(exps) do
+			table.insert(expBuffer, dispatchStringOfExp(exp))
 		end
-		str = str .. dispatchStringOfExp(exps[#exps])
-	end
 
-	return str
+		table.insert(buffer, depth .. 'local ' ..
+			table.concat(varBuffer, ', ') .. ' = ' .. table.concat(expBuffer, ', '))
+	else
+		table.insert(buffer, depth .. 'local ' .. table.concat(varBuffer, ', '))
+	end
 end
 
 
-function stringOfStat.IfStatement(node, str, depth)
+function stringOfStat.IfStatement(node, buffer, depth)
 	local condition = node.condition
 	local thenBody, elseBody = node.thenBody, node.elseBody
 
-	str = str .. 'if ' .. dispatchStringOfExp(condition) .. ' then'
-	str = str .. stringOfStatList(thenBody.statements, depth+1)
+	table.insert(buffer, depth ..
+		'if ' .. dispatchStringOfExp(condition) .. ' then')
+
+	stringOfStatList(thenBody.statements, buffer, depth+1)
 
 	if elseBody then
-		str = str .. '\nelse'
-		str = str .. stringOfStatList(elseBody.statements, depth+1)
+		table.insert(buffer, depth .. 'else')
+		stringOfStatList(elseBody.statements, buffer, '\t' .. depth)
 	end
 
-	str = str .. '\n' .. string.rep('\t', depth) .. 'end'
-
-	return str
+	table.insert(buffer, depth .. 'end')
 end
 
-function stringOfStat.While(node, str, depth)
+function stringOfStat.While(node, buffer, depth)
 	local condition, body = node.condition, node.body
 
-	str = str .. 'while ' .. dispatchStringOfExp(condition) .. ' do'
-	str = str .. stringOfStatList(body.statements, depth+1)
-	str = str .. '\n' .. string.rep('\t', depth) .. 'end'
+	table.insert(buffer,depth ..
+		'while ' .. dispatchStringOfExp(condition) .. ' do')
 
-	return str
+	stringOfStatList(body.statements, buffer, '\t' .. depth)
+
+	table.insert(buffer, depth .. 'end')
 end
 
-function stringOfStat.Do(node, str, depth)
-	str = str .. 'do'
-	str = str .. stringOfStatList(node.body.statements, depth + 1)
-	str = str .. '\n' .. indentation(depth) .. 'end'
-	return str
+function stringOfStat.Do(node, buffer, depth)
+	table.insert(buffer, depth .. 'do')
+	stringOfStatList(node.body.statements, buffer, '\t' .. depth)
+	table.insert(buffer, depth .. 'end')
 end
 
-function stringOfStat.Break(_, str, _) return str .. 'break' end
+function stringOfStat.Break(_, buffer, depth)
+	table.insert(buffer, depth .. 'break')
+end
 
-function stringOfStat.Nop(_, str, _) return str end
+function stringOfStat.Nop() end
 
 local function toLua(ast)
-	return stringOfStatList(ast.statements, 0)
+	local buffer = {}
+	stringOfStatList(ast.statements, buffer, '')
+	return table.concat(buffer, '\n')
 end
 
 return toLua
