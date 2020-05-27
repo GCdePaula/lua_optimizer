@@ -120,7 +120,6 @@ local function prepareStatementList(list, inEdges, env, control)
 
 	local head = list.head
 	local tail = list.tail
-	head.untouched = true
 	local outEdges = dispatchPrepareStat(head, inEdges, env, control)
 
 	return prepareStatementList(tail, outEdges, env, control)
@@ -271,7 +270,6 @@ function prepareStatement.Break(node, inEdges, _, control)
 	for _,edge in ipairs(inEdges) do
 		control:pushBreakEdge(edge)
 	end
-	node.untouched = false
 	return {}
 end
 

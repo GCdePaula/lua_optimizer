@@ -102,8 +102,7 @@ end
 local stringOfStat = {}
 
 local function dispatchStringOfStat(stat, str, depth)
-	if not stat.untouched then
-	-- if stat.untouched then
+	if stat.visited then
 		return stringOfStat[stat.tag](stat, str, depth)
 	else
 		return str

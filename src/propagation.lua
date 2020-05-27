@@ -154,8 +154,8 @@ local propagateStat = {}
 local function dispatchPropagateStatFromEdge(edge)
 	if edge:isExecutable() then
 		local node = edge:getToNode()
-		if node and node.untouched then
-			node.untouched = false
+		if node and not node.visited then
+			node.visited = true
 			propagateStat[node.tag](node)
 		end
 	end

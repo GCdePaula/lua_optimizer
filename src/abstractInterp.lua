@@ -116,8 +116,6 @@ function processStat.Assign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local inEdges, outEdge, inCell, outCell = node.inEdges, node.outEdge, node.inCell, node.outCell
 
-	-- outEdge:reset()
-
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
 
@@ -139,10 +137,11 @@ function processStat.Assign(node, workList)
 	end
 
 	local equal = cell:compareWithCell(outCell)
-	if not equal then
+	if not (equal and node.touched) then
 		node.outCell = cell
 		workList:addEdge(outEdge)
 	end
+	node.touched = true
 end
 
 function processStat.LocalAssign(node, workList)
@@ -171,10 +170,11 @@ function processStat.LocalAssign(node, workList)
 	end
 
 	local equal = cell:compareWithCell(outCell)
-	if not equal then
+	if not (equal and node.touched) then
 		node.outCell = cell
 		workList:addEdge(outEdge)
 	end
+	node.touched = true
 end
 
 function processStat.IfStatement(node, workList)
@@ -191,7 +191,7 @@ function processStat.IfStatement(node, workList)
 	local condElement = dispatchProcessExp(condition, cell)
 
 	local equal = cell:compareWithCell(outCell)
-	if not equal then
+	if not (equal and node.touched) then
 		-- outEdge changed, need to schedule outBranches
 		node.outCell = cell
 
@@ -210,6 +210,7 @@ function processStat.IfStatement(node, workList)
 			workList:addEdge(elseEdge)
 		end
 	end
+	node.touched = true
 end
 
 function processStat.While(node, workList)
@@ -226,7 +227,7 @@ function processStat.While(node, workList)
 	local condElement = dispatchProcessExp(condition, cell)
 
 	local equal = cell:compareWithCell(outCell)
-	if not equal then
+	if not (equal and node.touched) then
 		-- outEdge changed, need to schedule outBranches
 		node.outCell = cell
 
@@ -244,6 +245,7 @@ function processStat.While(node, workList)
 			workList:addEdge(falseEdge)
 		end
 	end
+	node.touched = true
 end
 
 function processStat.FunctionCallStat(node, workList)
@@ -260,9 +262,11 @@ function processStat.FunctionCallStat(node, workList)
 	end
 
 	local equal = cell:compareWithCell(outCell)
-	if not equal then
+	if not (equal and node.touched) then
+		node.outCell = cell
 		workList:addEdge(node.outEdge)
 	end
+	node.touched = true
 end
 
 function processStat.Break(node, workList)
