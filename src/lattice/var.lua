@@ -22,6 +22,10 @@ function Var:setElement(element)
 	self._element = element
 end
 
+function Var:setBottom()
+	self._element = Element:InitWithBottom()
+end
+
 function Var:meet(otherVar)
 	self._element:meet(otherVar:getElement())
 end

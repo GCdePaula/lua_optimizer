@@ -44,7 +44,7 @@ setmetatable(processExp, {__index = function(_)
 				node.element = newElement
 				return newElement
 
-			elseif LuaOps.unops[tag] or LuaOps.logunops[tag] then
+			elseif LuaOps.unops[tag] or LuaOps.unops[tag] then
 				local e = dispatchProcessExp(node.exp, cell)
 				local newElement = Ops[tag](e)
 				node.element = newElement
@@ -83,6 +83,26 @@ end
 
 function processExp.VarExp(node, cell)
 	local newElement = cell:getVar(node.name):getElement()
+	node.element = newElement
+	return newElement
+end
+
+function processExp.IndexationExp(node, cell)
+	dispatchProcessExp(node.exp, cell)
+	dispatchProcessExp(node.index, cell)
+	local newElement = Element:InitWithBottom()
+	node.element = newElement
+	return newElement
+end
+
+function processExp.FunctionCall(node, cell)
+	dispatchProcessExp(node.func, cell)
+
+	for _,v in ipairs(node.args) do
+		dispatchProcessExp(v, cell)
+	end
+
+	local newElement = Element:InitWithBottom()
 	node.element = newElement
 	return newElement
 end

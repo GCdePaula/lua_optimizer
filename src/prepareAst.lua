@@ -90,6 +90,14 @@ function prepareExp.VarExp(node, env)
 	renameVarExp(node, newName)
 end
 
+function prepareExp.FunctionCall(node, env)
+	local newName = env:getVar(node.name)
+	renameVarExp(node.func, newName)
+
+	for _,v in ipairs(node.args) do
+		dispatchPrepareExp(v, env)
+	end
+end
 
 
 local prepareStatement = {}

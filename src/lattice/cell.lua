@@ -18,7 +18,12 @@ function Cell:InitWithScope(scope)
 end
 
 function Cell:getVar(name)
-	return self._vars[name]
+	local var = self._vars[name]
+	if not var then
+		var = Var:InitWithName(name)
+		var:setBottom()
+	end
+	return var
 end
 
 function Cell:addVar(name)

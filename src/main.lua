@@ -26,6 +26,7 @@ if content then
 	-- local program = toLua(ast)
 	-- print(program)
 	-- pretty.dump(ast)
+  ---[[
 	local _, startEdge  = prepare(ast)
 	-- local program = toLua(ast)
 	-- print(program)
@@ -34,4 +35,5 @@ if content then
 	propagate(startEdge)
 	local program = toLua(ast)
 	print(program)
+  --]]
 end

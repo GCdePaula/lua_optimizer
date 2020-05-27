@@ -92,8 +92,9 @@ propagateExp['and'] = function(node)
 			end
 			return
 		end
+	else
+		dispatchPropagateExp(rhs)
 	end
-	dispatchPropagateExp(rhs)
 end
 
 propagateExp['or'] = function(node)
@@ -109,8 +110,9 @@ propagateExp['or'] = function(node)
 			end
 			return
 		end
+	else
+		dispatchPropagateExp(rhs)
 	end
-	dispatchPropagateExp(rhs)
 end
 
 propagateExp['=='] = function(node)
@@ -130,9 +132,21 @@ propagateExp['#'] = function (node)
 end
 
 
-propagateExp['VarExp'] = function(_, _)
+function propagateExp.VarExp(_, _)
 	-- Do nothing. If it got here there's nothing to
 	-- be done.
+end
+
+function propagateExp.IndexationExp(node, cell)
+	dispatchPropagateExp(node.exp, cell)
+	dispatchPropagateExp(node.index, cell)
+end
+
+function propagateExp.FunctionCall(node, cell)
+	dispatchPropagateExp(node.func, cell)
+	for _,v in ipairs(node.args) do
+		dispatchPropagateExp(v, cell)
+	end
 end
 
 

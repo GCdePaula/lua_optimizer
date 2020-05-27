@@ -86,6 +86,19 @@ function stringOfExp.IndexationExp(node)
 	return expStr .. '[' .. indexStr .. ']'
 end
 
+function stringOfExp.FunctionCall(node)
+	local funcStr = dispatchStringOfExp(node.func)
+
+	local args = {}
+	for _,arg in ipairs(node.args) do
+		table.insert(args, dispatchStringOfExp(arg))
+	end
+	local argsStr = table.concat(args, ', ')
+
+	return funcStr .. '(' .. argsStr .. ')'
+end
+
+
 local stringOfStat = {}
 
 local function dispatchStringOfStat(stat, str, depth)
@@ -138,8 +151,8 @@ function stringOfStat.LocalAssign(stat, buffer, depth)
 		table.insert(varBuffer, var.name)
 	end
 
-	local expBuffer = {}
 	if #exps ~= 0 then
+		local expBuffer = {}
 		for _,exp in ipairs(exps) do
 			table.insert(expBuffer, dispatchStringOfExp(exp))
 		end
