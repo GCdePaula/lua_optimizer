@@ -199,6 +199,21 @@ function stringOfStat.Do(node, buffer, depth)
 	table.insert(buffer, depth .. 'end')
 end
 
+function stringOfStat.FunctionCallStat(node, buffer, depth)
+	local func, args = node.func, node.args
+
+	local funcString = dispatchStringOfExp(func)
+
+	local argsStr = {}
+	for _,arg in ipairs(args) do
+		table.insert(argsStr, dispatchStringOfExp(arg))
+	end
+
+	table.insert(buffer, depth .. funcString
+		.. '(' .. table.concat(argsStr, ', ') .. ')')
+
+end
+
 function stringOfStat.Break(_, buffer, depth)
 	table.insert(buffer, depth .. 'break')
 end

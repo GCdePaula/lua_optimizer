@@ -310,7 +310,7 @@ local function createLuaGrammar()
 		-- Local function declaration. Transforms to 'local f; f = function ...'
 		+ Local * Function * V"Name" * V"AnonymousFunction" / localFunctionDesugar
 
-		-- Global function declaration. Transforms to 'f = function ...'
+		-- "Global" function declaration. Transforms to 'f = function ...'
 		+ Function * V"FunctionName" * V"AnonymousFunction" / globalFunctionDesugar
 
 		-- Function call statement
@@ -406,7 +406,8 @@ local function createLuaGrammar()
 	rules.VarList = Ct(V"Var" * (comma * V"Var")^0)
 	rules.Var = Cf(V"ExpPrefix" * V"VarSuffix", nestExpression)
 		+ tagWrap('Var', tagP('name', V"Name"))
-	rules.VarSuffix = (V"CallSuffix")^0 * (V"Indexation" / function(i) i.tag = 'Indexation' return i end) * (V"VarSuffix")^-1
+	rules.VarSuffix = (V"CallSuffix")^0
+		* (V"Indexation" / function(i) i.tag = 'Indexation' return i end) * (V"VarSuffix")^-1
 
 
 	rules.ExpList = V"Exp" * (comma * V"Exp")^0
@@ -467,6 +468,7 @@ local function createLuaGrammar()
 		+ tagWrap("Exp", V"Exp")
 
 	rules.FunctionCallStat = Cf(V"ExpPrefix" * V"CallStatSuffix", nestExpression)
+		/ function(x) x.tag = "FunctionCallStat"; return x end
 
 	rules.CallStatSuffix = (V"Indexation"^0 * V"CallSuffix" * (V"CallStatSuffix")^-1)
 

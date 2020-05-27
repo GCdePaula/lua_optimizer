@@ -246,6 +246,25 @@ function processStat.While(node, workList)
 	end
 end
 
+function processStat.FunctionCallStat(node, workList)
+	local func, args = node.func, node.args
+	local inEdges = node.inEdges
+	local inCell, outCell = node.inCell, node.outCell
+
+	inCell:updateWithInEdges(inEdges)
+	local cell = inCell:copy()
+
+	dispatchProcessExp(func, cell)
+	for _,arg in ipairs(args) do
+		dispatchProcessExp(arg, cell)
+	end
+
+	local equal = cell:compareWithCell(outCell)
+	if not equal then
+		workList:addEdge(node.outEdge)
+	end
+end
+
 function processStat.Break(node, workList)
 	local outEdge = node.outEdge
 	workList:addEdge(outEdge)

@@ -248,6 +248,25 @@ function prepareStatement.Assign(node, inEdges, env)
 	return {outEdge}
 end
 
+function prepareStatement.FunctionCallStat(node, inEdges, env)
+	setToEdges(inEdges, node)
+	node.inEdges = inEdges
+
+	dispatchPrepareExp(node.func, env)
+
+	for _,arg in ipairs(node.args) do
+		dispatchPrepareExp(arg, env)
+	end
+
+	node.inCell = env:newLatticeCell()
+	node.outCell = env:newLatticeCell()
+
+	local outEdge = Edge:InitWithFromNode(node)
+	node.outEdge = outEdge
+
+	return {outEdge}
+end
+
 function prepareStatement.Break(node, inEdges, _, control)
 	for _,edge in ipairs(inEdges) do
 		control:pushBreakEdge(edge)

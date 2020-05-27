@@ -226,6 +226,16 @@ function propagateStat.While(node)
 	end
 end
 
+function propagateStat.FunctionCallStat(node)
+	local func, args = node.func, node.args
+
+	dispatchPropagateExp(func)
+	for _,arg in ipairs(args) do
+		dispatchPropagateExp(arg)
+	end
+
+	dispatchPropagateStatFromEdge(node.outEdge)
+end
 -- function propagateStat.Break(node)
 -- 	dispatchPropagateStatFromEdge(node.outEdge)
 -- end
