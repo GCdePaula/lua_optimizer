@@ -267,15 +267,17 @@ function prepareStatement.FunctionCallStat(node, inEdges, env)
 end
 
 function prepareStatement.Break(node, inEdges, _, control)
-	for _,edge in ipairs(inEdges) do
-		control:pushBreakEdge(edge)
-	end
+	setToEdges(inEdges, node)
+	node.inEdges = inEdges
+
+	local outEdge = Edge:InitWithFromNode(node)
+	node.outEdge = outEdge
+	control:pushBreakEdge(outEdge)
+
 	return {}
 end
 
 function prepareStatement.Nop(_, inEdges)
-	-- setToEdges(inEdges, node)
-	-- node.inEdges = inEdges
 	return inEdges
 end
 
