@@ -32,7 +32,7 @@ setmetatable(processExp, {__index = function(_)
 
 				local e1
 				local e2
-				if tag == '^' then
+				if tag == '^' or tag == '..' then
 					e1 = dispatchProcessExp(node.lhs, cell)
 					e2 = dispatchProcessExp(node.rhs, cell)
 				else
@@ -82,8 +82,10 @@ function processExp.BoolLiteral(node, _)
 end
 
 function processExp.VarExp(node, cell)
-	local newElement = cell:getVar(node.name):getElement()
+	local var = cell:getVar(node.name)
+	local newElement = var:getElement()
 	node.element = newElement
+
 	return newElement
 end
 
@@ -131,7 +133,7 @@ function processStat.Assign(node, workList)
 			if var.tag == 'Var' then
 				cell:setElementToVar(var.name, expElement)
 			else
-				-- error("Assign to indexation!")
+				-- 
 			end
 		end
 	end
@@ -147,8 +149,6 @@ end
 function processStat.LocalAssign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local inEdges, outEdge, inCell, outCell = node.inEdges, node.outEdge, node.inCell, node.outCell
-
-	-- outEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -182,19 +182,16 @@ function processStat.IfStatement(node, workList)
 	local inEdges, thenEdge, elseEdge = node.inEdges, node.thenEdge, node.elseEdge
 	local inCell, outCell = node.inCell, node.outCell
 
-	-- thenEdge:reset()
-	-- elseEdge:reset()
-
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
 
 	local condElement = dispatchProcessExp(condition, cell)
 
+	-- outEdge changed, need to schedule outBranches
+	node.outCell = cell
+
 	local equal = cell:compareWithCell(outCell)
 	if not (equal and node.touched) then
-		-- outEdge changed, need to schedule outBranches
-		node.outCell = cell
-
 		local isConstant, test = condElement:test()
 		if isConstant then
 			-- May take only one branch
@@ -217,9 +214,6 @@ function processStat.While(node, workList)
 	local condition = node.condition
 	local inEdges, trueEdge, falseEdge = node.inEdges, node.trueEdge, node.falseEdge
 	local inCell, outCell = node.inCell, node.outCell
-
-	-- trueEdge:reset()
-	-- falseEdge:reset()
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
@@ -248,6 +242,40 @@ function processStat.While(node, workList)
 	node.touched = true
 end
 
+function processStat.Repeat(node, workList)
+	local condition = node.condition
+	local inEdges, repeatEdge, continueEdge = node.inEdges, node.repeatEdge, node.continueEdge
+	local inCell, outCell = node.inCell, node.outCell
+
+	-- trueEdge:reset()
+	-- falseEdge:reset()
+
+	inCell:updateWithInEdges(inEdges)
+	local cell = inCell:copy()
+
+	local condElement = dispatchProcessExp(condition, cell)
+
+	local equal = cell:compareWithCell(outCell)
+	if not (equal and node.touched) then
+		-- outEdge changed, need to schedule outBranches
+		node.outCell = cell
+
+		local isConstant, test = condElement:test()
+		if isConstant then
+			-- May take only one branch
+			if test then
+				workList:addEdge(continueEdge)
+			else
+				workList:addEdge(repeatEdge)
+			end
+		else
+			-- Both branches must be taken
+			workList:addEdge(continueEdge)
+			workList:addEdge(repeatEdge)
+		end
+	end
+end
+
 function processStat.FunctionCallStat(node, workList)
 	local func, args = node.func, node.args
 	local inEdges = node.inEdges
@@ -255,6 +283,7 @@ function processStat.FunctionCallStat(node, workList)
 
 	inCell:updateWithInEdges(inEdges)
 	local cell = inCell:copy()
+
 
 	dispatchProcessExp(func, cell)
 	for _,arg in ipairs(args) do

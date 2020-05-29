@@ -3,7 +3,8 @@ local binops = {
 	['*']=true, ['/']=true, ['//']=true, ['%']=true,
 	['+']=true, ['-']=true,
 	['<<']=true, ['>>']=true,
-	['&']=true, ['~']=true, ['|']=true
+	['&']=true, ['~']=true, ['|']=true,
+	['..']=true
 }
 local unops = {['not']=true,['#']=true,['u-']=true,['u~']=true}
 
@@ -91,6 +92,9 @@ op['=='] = function(e1, e2)
 end
 op['~='] = function(e1, e2)
 	return e1 ~= e2
+end
+op['..'] = function(e1, e2)
+	return e1 .. e2
 end
 
 local function makeOp(tag, x, y)

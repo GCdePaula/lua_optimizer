@@ -22,8 +22,10 @@ function Cell:getVar(name)
 	if not var then
 		var = Var:InitWithName(name)
 		var:setBottom()
+		return var, true
+	else
+		return var, false
 	end
-	return var
 end
 
 function Cell:addVar(name)
@@ -31,8 +33,9 @@ function Cell:addVar(name)
 end
 
 function Cell:setElementToVar(name, element)
-	local var = self:getVar(name)
+	local var, isGlobal = self:getVar(name)
 	var:setElement(element)
+	return isGlobal
 end
 
 function Cell:updateWithInEdges(edges)

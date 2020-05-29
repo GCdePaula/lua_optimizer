@@ -114,18 +114,18 @@ end
 
 -- returns outEdges, and if continues
 local function prepareStatementList(list, inEdges, env, control)
-	if list.tag == "EmptyList" then
+	local head = list.head
+	if not head then
 		return inEdges
 	end
 
-	local head = list.head
 	local tail = list.tail
 	local outEdges = dispatchPrepareStat(head, inEdges, env, control)
 
 	return prepareStatementList(tail, outEdges, env, control)
 end
 
-prepareStatement["Block"] = function(node, inEdges, env, control)
+function prepareStatement.Block(node, inEdges, env, control)
 	local oldScope = env:startBlock()
 	local outEdges = prepareStatementList(node.statements, inEdges, env, control)
 	env:endBlock(oldScope)
@@ -155,6 +155,33 @@ function prepareStatement.While(node, inEdges, env, control)
 
 	local breakEdges = control:endLoop()
 	table.insert(breakEdges, falseEdge)
+
+	return breakEdges
+end
+
+function prepareStatement.Repeat(node, inEdges, env, control)
+	local condition, body = node.condition, node.body
+
+	control:startLoop()
+
+	-- Set latticeCell
+	dispatchPrepareExp(condition, env)
+	node.inCell = env:newLatticeCell()
+	node.outCell = env:newLatticeCell()
+
+	-- Create outEdges
+	local repeatEdge, continueEdge = Edge:InitWithFromNode(node), Edge:InitWithFromNode(node)
+	node.repeatEdge = repeatEdge
+	node.continueEdge = continueEdge
+
+	-- Set edges
+	table.insert(inEdges, repeatEdge)
+	local bodyOutEdges = dispatchPrepareStat(body, inEdges, env, control)
+	setToEdges(bodyOutEdges, node)
+	node.inEdges = bodyOutEdges
+
+	local breakEdges = control:endLoop()
+	table.insert(breakEdges, continueEdge)
 
 	return breakEdges
 end

@@ -18,8 +18,8 @@ local function findMaxEquals(str)
 	return max
 end
 
-local function indentation(depth)
-	return string.rep('\t', depth)
+local function indentation(indent)
+	return string.rep('\t', indent)
 end
 --]]
 
@@ -101,25 +101,23 @@ end
 
 local stringOfStat = {}
 
-local function dispatchStringOfStat(stat, str, depth)
+local function dispatchStringOfStat(stat, buffer, indent)
 	if stat.visited then
-		return stringOfStat[stat.tag](stat, str, depth)
-	else
-		return str
+		return stringOfStat[stat.tag](stat, buffer, indent)
 	end
 end
 
-local function stringOfStatList(list, buffer, depth)
+local function stringOfStatList(list, buffer, indent)
 	local head = list.head
 
 	while head do
-		dispatchStringOfStat(head, buffer, depth)
+		dispatchStringOfStat(head, buffer, indent)
 		list = list.tail
 		head = list.head
 	end
 end
 
-function stringOfStat.Assign(stat, buffer, depth)
+function stringOfStat.Assign(stat, buffer, indent)
 	local vars, exps = stat.vars, stat.exps
 
 	local varBuffer = {}
@@ -138,11 +136,11 @@ function stringOfStat.Assign(stat, buffer, depth)
 		table.insert(expBuffer, dispatchStringOfExp(exp))
 	end
 
-	table.insert(buffer, depth ..
+	table.insert(buffer, indent ..
 		table.concat(varBuffer, ', ') .. ' = ' .. table.concat(expBuffer, ', '))
 end
 
-function stringOfStat.LocalAssign(stat, buffer, depth)
+function stringOfStat.LocalAssign(stat, buffer, indent)
 	local vars, exps = stat.vars, stat.exps
 
 	local varBuffer = {}
@@ -156,49 +154,60 @@ function stringOfStat.LocalAssign(stat, buffer, depth)
 			table.insert(expBuffer, dispatchStringOfExp(exp))
 		end
 
-		table.insert(buffer, depth .. 'local ' ..
+		table.insert(buffer, indent .. 'local ' ..
 			table.concat(varBuffer, ', ') .. ' = ' .. table.concat(expBuffer, ', '))
 	else
-		table.insert(buffer, depth .. 'local ' .. table.concat(varBuffer, ', '))
+		table.insert(buffer, indent .. 'local ' .. table.concat(varBuffer, ', '))
 	end
 end
 
 
-function stringOfStat.IfStatement(node, buffer, depth)
+function stringOfStat.IfStatement(node, buffer, indent)
 	local condition = node.condition
 	local thenBody, elseBody = node.thenBody, node.elseBody
 
-	table.insert(buffer, depth ..
+	table.insert(buffer, indent ..
 		'if ' .. dispatchStringOfExp(condition) .. ' then')
 
-	stringOfStatList(thenBody.statements, buffer, depth+1)
+	stringOfStatList(thenBody.statements, buffer, '\t' .. indent)
 
 	if elseBody then
-		table.insert(buffer, depth .. 'else')
-		stringOfStatList(elseBody.statements, buffer, '\t' .. depth)
+		table.insert(buffer, indent .. 'else')
+		stringOfStatList(elseBody.statements, buffer, '\t' .. indent)
 	end
 
-	table.insert(buffer, depth .. 'end')
+	table.insert(buffer, indent .. 'end')
 end
 
-function stringOfStat.While(node, buffer, depth)
+function stringOfStat.While(node, buffer, indent)
 	local condition, body = node.condition, node.body
 
-	table.insert(buffer,depth ..
+	table.insert(buffer, indent ..
 		'while ' .. dispatchStringOfExp(condition) .. ' do')
 
-	stringOfStatList(body.statements, buffer, '\t' .. depth)
+	stringOfStatList(body.statements, buffer, '\t' .. indent)
 
-	table.insert(buffer, depth .. 'end')
+	table.insert(buffer, indent .. 'end')
 end
 
-function stringOfStat.Do(node, buffer, depth)
-	table.insert(buffer, depth .. 'do')
-	stringOfStatList(node.body.statements, buffer, '\t' .. depth)
-	table.insert(buffer, depth .. 'end')
+function stringOfStat.Repeat(node, buffer, indent)
+	local condition, body = node.condition, node.body
+
+	table.insert(buffer, indent .. 'repeat')
+
+	stringOfStatList(body.statements, buffer, '\t' .. indent)
+
+	table.insert(buffer, indent .. 'until '
+		.. dispatchStringOfExp(condition))
 end
 
-function stringOfStat.FunctionCallStat(node, buffer, depth)
+function stringOfStat.Do(node, buffer, indent)
+	table.insert(buffer, indent .. 'do')
+	stringOfStatList(node.body.statements, buffer, '\t' .. indent)
+	table.insert(buffer, indent .. 'end')
+end
+
+function stringOfStat.FunctionCallStat(node, buffer, indent)
 	local func, args = node.func, node.args
 
 	local funcString = dispatchStringOfExp(func)
@@ -208,13 +217,13 @@ function stringOfStat.FunctionCallStat(node, buffer, depth)
 		table.insert(argsStr, dispatchStringOfExp(arg))
 	end
 
-	table.insert(buffer, depth .. funcString
+	table.insert(buffer, indent .. funcString
 		.. '(' .. table.concat(argsStr, ', ') .. ')')
 
 end
 
-function stringOfStat.Break(_, buffer, depth)
-	table.insert(buffer, depth .. 'break')
+function stringOfStat.Break(_, buffer, indent)
+	table.insert(buffer, indent .. 'break')
 end
 
 function stringOfStat.Nop() end

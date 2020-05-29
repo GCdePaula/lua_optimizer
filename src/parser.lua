@@ -288,8 +288,8 @@ local function createLuaGrammar()
 
 	rules.Chunk = spaces * V"Block"
 	rules.Block = tagWrap('Block', tagP('statements', Cf(
-		tagWrap('Cons', tagP('head', V"Stat"))^0 * tagWrap('Cons', tagP('head', V"ReturnStat"))^-1
-			* Cc({tag='EmptyList'}), nestStats) / getTopStat
+		Ct(tagP('head', V"Stat"))^0 * Ct(tagP('head', V"ReturnStat"))^-1
+			* Cc({}), nestStats) / getTopStat
 	))
 
 	-- Statement
