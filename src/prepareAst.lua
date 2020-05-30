@@ -293,9 +293,10 @@ function prepareStatement.FunctionCallStat(node, inEdges, env)
 	return {outEdge}
 end
 
-function prepareStatement.Break(node, inEdges, _, control)
+function prepareStatement.Break(node, inEdges, env, control)
 	setToEdges(inEdges, node)
 	node.inEdges = inEdges
+	node.inCell = env:newLatticeCell()
 
 	local outEdge = Edge:InitWithFromNode(node)
 	node.outEdge = outEdge

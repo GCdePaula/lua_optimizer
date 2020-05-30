@@ -88,9 +88,15 @@ function Env:getVar(name)
 		-- TODO: add upvalue to closure
 		local previousEnv = self._previousEnv
 		if previousEnv then
-			return previousEnv:getVar(name)
+			local upval = previousEnv:getVar(name)
+			self._vars[name] = upval
+			return upval
 		else
-			return false
+			if name == '_ENV' then
+				return '_ENV'
+			else
+				return false
+			end
 		end
 	end
 end

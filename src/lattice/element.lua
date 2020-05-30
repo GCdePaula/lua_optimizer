@@ -151,11 +151,18 @@ function Element:compare(otherElement)
 	return true
 end
 
+-- Returns true if element changed, false otherwise
 function Element:meet(e)
-	if self.tag == 'Top' then
+	if self:isBottom() then
+		return false
+	elseif self:isTop() then
 		self:assign(e)
+		return not e:isTop()
 	elseif not self:compare(e) then
 		self:assign(Element:InitWithBottom())
+		return true
+	else
+		return false
 	end
 end
 

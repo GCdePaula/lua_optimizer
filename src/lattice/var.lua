@@ -27,7 +27,7 @@ function Var:setBottom()
 end
 
 function Var:meet(otherVar)
-	self._element:meet(otherVar:getElement())
+	return self._element:meet(otherVar:getElement())
 end
 
 function Var:equal(otherVar)

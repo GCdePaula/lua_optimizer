@@ -1,5 +1,4 @@
 local Var = require "lattice.var"
-local Element = require "lattice.element"
 
 local Cell = {}
 
@@ -20,11 +19,13 @@ end
 function Cell:getVar(name)
 	local var = self._vars[name]
 	if not var then
+		-- Means it's an upvalue not assigned
+		-- to before.
 		var = Var:InitWithName(name)
 		var:setBottom()
-		return var, true
+		return var
 	else
-		return var, false
+		return var
 	end
 end
 
@@ -33,11 +34,11 @@ function Cell:addVar(name)
 end
 
 function Cell:setElementToVar(name, element)
-	local var, isGlobal = self:getVar(name)
+	local var = self:getVar(name)
 	var:setElement(element)
-	return isGlobal
 end
 
+-- Returns if there's some change
 function Cell:updateWithInEdges(edges)
 	local cells = {}
 	for _,edge in ipairs(edges) do
@@ -46,14 +47,17 @@ function Cell:updateWithInEdges(edges)
 		end
 	end
 
+	local changed = false
 	local vars = self._vars
-	for name,var in pairs(vars) do
-		var:setElement(Element:InitWithTop())
+	for name, var in pairs(vars) do
 		for _,cell in ipairs(cells) do
 			local otherVar = cell:getVar(name)
-			var:meet(otherVar)
+			local varChanged = var:meet(otherVar)
+			changed = changed or varChanged
 		end
 	end
+
+	return changed
 end
 
 function Cell:compareWithCell(cell)

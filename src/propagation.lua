@@ -104,8 +104,10 @@ local function dispatchPropagateStatFromEdge(edge)
 end
 
 local function propagateAssign(node)
+	print(node.vars[1].name)
 	local exps = node.exps
 	for _,exp in ipairs(exps) do
+		print(exp.element:getConstant())
 		dispatchPropagateExp(exp)
 	end
 	dispatchPropagateStatFromEdge(node.outEdge)
