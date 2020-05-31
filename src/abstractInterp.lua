@@ -109,10 +109,28 @@ function processExp.FunctionCall(node, cell)
 	return newElement
 end
 
+function processExp.TableConstructor(node, cell)
+  local fields = node.fields
+
+  for _,field in ipairs(fields) do
+    dispatchProcessExp(field.value, cell)
+    if field.tag == 'ExpAssign' then
+      dispatchProcessExp(field.exp, cell)
+    end
+  end
+
+	local newElement = Element:InitWithBottom()
+	node.element = newElement
+	return newElement
+end
+
 local processStat = {}
 local function dispatchProcessStat(node, workList)
-	local changed = node.inCell:updateWithInEdges(node.inEdges)
+  if node.tag == 'EndNode' then
+    return
+  end
 
+	local changed = node.inCell:updateWithInEdges(node.inEdges)
 	if changed or not node.touched then
 		node.touched = true
 		return processStat[node.tag](node, workList)
@@ -272,7 +290,6 @@ local function findFixedPoint(startEdge)
 
 	repeat
 		local node = edge:getToNode()
-		print(node.tag)
 		dispatchProcessStat(node, workList)
 		edge = workList:pop()
 	until not edge

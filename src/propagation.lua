@@ -74,21 +74,32 @@ propagateExp['or'] = function(node)
 	end
 end
 
-function propagateExp.VarExp(_, _)
+function propagateExp.VarExp()
 	-- Do nothing. If it got here there's nothing to
 	-- be done.
 end
 
-function propagateExp.IndexationExp(node, cell)
-	dispatchPropagateExp(node.exp, cell)
-	dispatchPropagateExp(node.index, cell)
+function propagateExp.IndexationExp(node)
+	dispatchPropagateExp(node.exp)
+	dispatchPropagateExp(node.index)
 end
 
-function propagateExp.FunctionCall(node, cell)
-	dispatchPropagateExp(node.func, cell)
+function propagateExp.FunctionCall(node)
+	dispatchPropagateExp(node.func)
 	for _,v in ipairs(node.args) do
-		dispatchPropagateExp(v, cell)
+		dispatchPropagateExp(v)
 	end
+end
+
+function propagateExp.TableConstructor(node)
+  local fields = node.fields
+
+  for _,field in ipairs(fields) do
+    dispatchPropagateExp(field.value)
+    if field.tag == 'ExpAssign' then
+      dispatchPropagateExp(field.exp)
+    end
+  end
 end
 
 
@@ -104,10 +115,8 @@ local function dispatchPropagateStatFromEdge(edge)
 end
 
 local function propagateAssign(node)
-	print(node.vars[1].name)
 	local exps = node.exps
 	for _,exp in ipairs(exps) do
-		print(exp.element:getConstant())
 		dispatchPropagateExp(exp)
 	end
 	dispatchPropagateStatFromEdge(node.outEdge)
@@ -200,9 +209,12 @@ function propagateStat.FunctionCallStat(node)
 
 	dispatchPropagateStatFromEdge(node.outEdge)
 end
+
 function propagateStat.Break(node)
 	dispatchPropagateStatFromEdge(node.outEdge)
 end
+
+function propagateStat.EndNode() end
 
 local function constantPropagation(startEdge)
 	dispatchPropagateStatFromEdge(startEdge)

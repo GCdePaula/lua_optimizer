@@ -185,8 +185,8 @@ local function createLuaGrammar()
 		return patt + Cc(default)
 	end
 
-	local function localFunctionDesugar(name, func)
-		func.tag = 'AnonymousFunction'
+	local function localFunctionDesugar(name, closure)
+		closure.tag = 'AnonymousFunction'
 		return {
 				tag  = 'LocalAssign',
 				vars = {
@@ -199,7 +199,7 @@ local function createLuaGrammar()
 				vars = {
 					{tag='Var', name=name}
 				},
-				exps = {func}
+				exps = {closure}
 			}
 	end
 
@@ -221,44 +221,29 @@ local function createLuaGrammar()
 		return {tag='Indexation', index=b, exp=a}
 	end
 
-	local function nestIf(a, b)
-		if b then
-			a.elseBody = b
-			b.topIf = a.topIf or a
-			a.topIf = nil
-			return b
+	local function nestIf(stat, ...)
+		if not stat then
+			return false
 		else
-			a.elseBody = false
-			return a
+			local elseIfStat = nestIf(...)
+			if elseIfStat then
+				local block = {tag = 'Block'}
+				block.statements = {head = elseIfStat, tail = {}}
+				stat.elseBody = block
+			else
+				stat.elseBody = false
+			end
+			return stat
 		end
-	end
+  end
 
-	local function getTopIf(c)
-		if c.topIf then
-			local p = c.topIf
-			c.topIf = nil
-			return p
-		else
-			return c
-		end
-	end
-
-	local function nestStats(a, b)
-		a.tail = b
-		b.topStat = a.topStat or a
-		a.topStat = nil
-		return b
-	end
-
-	local function getTopStat(last)
-		local top = last.topStat
-		if top then
-			last.topStat = nil
-			return top
-		else
-			return last
-		end
-	end
+	local function nestStats(s, ...)
+    if not s or s == '' then
+      return {}
+    else
+      return {head = s, tail = nestStats(...)}
+    end
+  end
 
 	-- Grammar rules
 	local rules = {"Chunk"}
@@ -287,9 +272,8 @@ local function createLuaGrammar()
 	--
 
 	rules.Chunk = spaces * V"Block"
-	rules.Block = tagWrap('Block', tagP('statements', Cf(
-		Ct(tagP('head', V"Stat"))^0 * Ct(tagP('head', V"ReturnStat"))^-1
-			* Cc({}), nestStats) / getTopStat
+	rules.Block = tagWrap('Block', tagP('statements',
+		Cg(V"Stat"^0 * V"ReturnStat"^-1) / nestStats
 	))
 
 	-- Statement
@@ -386,7 +370,7 @@ local function createLuaGrammar()
 	)
 
 
-	rules.IfStatement = Cf(
+	rules.IfStatement =
 		-- Topmost if
 		tagWrap('IfStatement', If * tagP('condition', V"Exp") * Then * tagP('thenBody', V"Block"))
 
@@ -394,14 +378,9 @@ local function createLuaGrammar()
 		* (tagWrap('IfStatement', Elseif * tagP('condition', V"Exp") * Then * tagP('thenBody', V"Block")))^0
 
 		-- Followed optionally by an else
-		* optional(Cg(Else * V"Block"), false) * End,
+		* optional(Cg(Else * V"Block"), false) * End
 
-		-- Nest elseifs into else body. It can be thought of this transformation:
-		-- 'if a then elseif b then end' -> 'if a then else if b then end end'.
-		-- However we need to return the topmost if statement. That is done through
-		-- saving the top and propagating it throughout the fold, then returning it
-		-- in 'getTopIf'
-		nestIf) / getTopIf
+			/ nestIf
 
 	rules.VarList = Ct(V"Var" * (comma * V"Var")^0)
 	rules.Var = Cf(V"ExpPrefix" * V"VarSuffix", nestExpression)
@@ -461,11 +440,11 @@ local function createLuaGrammar()
 	rules.Parameters = V"Ellipsis"
 		+ V"NameList" * (comma * V"Ellipsis")^-1
 
-	rules.TableConstructor = tagWrap("TableConstructor", open_curly * V"FieldList"^-1 * close_curly)
-	rules.FieldList = V"Field" * (fieldsep * V"Field")^0 * fieldsep^-1
-	rules.Field = tagWrap("ExpAssign", open_square * V"Exp" * close_square * equal * V"Exp")
-		+ tagWrap("NameAssign", V"Name" * equal * V"Exp")
-		+ tagWrap("Exp", V"Exp")
+	rules.TableConstructor = tagWrap("TableConstructor", open_curly * tagP('fields', V"FieldList"^-1) * close_curly)
+	rules.FieldList = Ct(V"Field" * (fieldsep * V"Field")^0 * fieldsep^-1)
+	rules.Field = tagWrap("ExpAssign", open_square * tagP('exp', V"Exp") * close_square * equal * tagP('value', V"Exp"))
+		+ tagWrap("NameAssign", tagP('name', V"Name") * equal * tagP('value', V"Exp"))
+		+ tagWrap("Exp", tagP('value', V"Exp"))
 
 	rules.FunctionCallStat = Cf(V"ExpPrefix" * V"CallStatSuffix", nestExpression)
 		/ function(x) x.tag = "FunctionCallStat"; return x end

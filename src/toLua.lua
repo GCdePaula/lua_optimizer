@@ -50,7 +50,6 @@ setmetatable(stringOfExp, {__index = function(_)
 			str = tag .. dispatchStringOfExp(exp.exp)
 
 		else
-			pretty.dump(exp)
 			error('stringOfExp tag not implemented ' .. tag)
 		end
 
@@ -96,6 +95,26 @@ function stringOfExp.FunctionCall(node)
 	local argsStr = table.concat(args, ', ')
 
 	return funcStr .. '(' .. argsStr .. ')'
+end
+
+function stringOfExp.TableConstructor(node)
+	local fields = {}
+	for _,field in ipairs(node.fields) do
+    local value = dispatchStringOfExp(field.value)
+    local key
+
+    local tag = field.tag
+    if tag == 'ExpAssign' then
+      key = '[ ' .. dispatchStringOfExp(field.exp) .. ' ]' .. ' = '
+    elseif tag == 'NameAssign' then
+      key = field.name .. ' = '
+    else
+      key = ""
+    end
+		table.insert(fields, key .. value)
+	end
+
+	return '{ ' .. table.concat(fields, ', ') .. ' }'
 end
 
 

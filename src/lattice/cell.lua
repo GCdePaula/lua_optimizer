@@ -52,8 +52,7 @@ function Cell:updateWithInEdges(edges)
 	for name, var in pairs(vars) do
 		for _,cell in ipairs(cells) do
 			local otherVar = cell:getVar(name)
-			local varChanged = var:meet(otherVar)
-			changed = changed or varChanged
+			changed = var:meet(otherVar) or changed
 		end
 	end
 

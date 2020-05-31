@@ -53,6 +53,7 @@ end
 
 local prepareExp = {}
 local function dispatchPrepareExp(node, env)
+  print(node.tag)
 	return prepareExp[node.tag](node, env)
 end
 
@@ -99,6 +100,16 @@ function prepareExp.FunctionCall(node, env)
 	end
 end
 
+function prepareExp.TableConstructor(node, env)
+  local fields = node.fields
+
+  for _,field in ipairs(fields) do
+    dispatchPrepareExp(field.value, env)
+    if field.tag == 'ExpAssign' then
+      dispatchPrepareExp(field.exp, env)
+    end
+  end
+end
 
 local prepareStatement = {}
 
