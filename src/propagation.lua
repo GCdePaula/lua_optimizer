@@ -160,6 +160,17 @@ function propagateStat.IfStatement(node)
 	end
 end
 
+function propagateStat.GenericFor(node)
+	local exps = node.exps
+
+	for _, exp in ipairs(exps) do
+		dispatchPropagateExp(exp)
+	end
+
+	dispatchPropagateStatFromEdge(node.loopEdge)
+	dispatchPropagateStatFromEdge(node.continueEdge)
+end
+
 function propagateStat.While(node)
 	local condition = node.condition
 	dispatchPropagateExp(condition)

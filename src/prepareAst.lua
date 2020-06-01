@@ -1,7 +1,6 @@
 local LuaOps = require "luaOps"
 local Edge = require "edge"
 local Env = require "env"
-local Func = require "func"
 
 local function concatArrays(a, b)
 	for _, v in ipairs(b) do
@@ -64,7 +63,6 @@ local prepareExp = {}
 local prepareStatement = {}
 
 local function dispatchPrepareStat(node, inEdges, env, control)
-	print(node.tag)
 	return prepareStatement[node.tag](node, inEdges, env, control)
 end
 
@@ -166,6 +164,43 @@ function prepareStatement.Block(node, inEdges, env, control)
 	local outEdges = prepareStatementList(node.statements, inEdges, env, control)
 	env:endBlock(oldScope)
 	return outEdges
+end
+
+function prepareStatement.GenericFor(node, inEdges, env, control)
+	local vars, exps, body = node.vars, node.exps, node.body
+
+	local oldScope = env:startBlock()
+	control:startLoop()
+
+	for _,exp in ipairs(exps) do
+		dispatchPrepareExp(exp, env)
+	end
+
+	node.inCell = env:newLatticeCell()
+
+	for _,var in ipairs(vars) do
+		local newName = env:newLocalVar(var.name)
+		renameVar(var, newName)
+	end
+
+	node.outCell = env:newLatticeCell()
+
+	-- Create outEdges
+	local loopEdge, continueEdge = Edge:InitWithFromNode(node), Edge:InitWithFromNode(node)
+	node.loopEdge = loopEdge
+	node.continueEdge = continueEdge
+
+	-- Set edges
+	local bodyOutEdges = prepareStatementList(body.statements, {loopEdge}, env, control)
+	concatArrays(inEdges, bodyOutEdges)
+	setToEdges(inEdges, node)
+	node.inEdges = inEdges
+
+	local breakEdges = control:endLoop()
+	table.insert(breakEdges, continueEdge)
+
+	env:endBlock(oldScope)
+	return breakEdges
 end
 
 function prepareStatement.While(node, inEdges, env, control)
@@ -346,7 +381,6 @@ function prepareStatement.Nop(_, inEdges)
 end
 
 return function(ast)
-
 	-- Prepare Chunk
 	local env = Env:Init()
 	local control = newControlTable()

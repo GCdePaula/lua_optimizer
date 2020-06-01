@@ -216,6 +216,26 @@ function processStat.IfStatement(node, workList)
 	end
 end
 
+function processStat.GenericFor(node, workList)
+	local vars, exps = node.vars, node.exps
+	local loopEdge, continueEdge = node.loopEdge, node.continueEdge
+	local cell = node.inCell:copy()
+
+	for _,exp in ipairs(exps) do
+		dispatchProcessExp(exp, cell)
+	end
+
+	for _,var in ipairs(vars) do
+		cell:addVar(var.name)
+		cell:setElementToVar(var.name, Element:InitWithBottom())
+	end
+
+	node.outCell = cell
+
+	workList:addEdge(loopEdge)
+	workList:addEdge(continueEdge)
+end
+
 function processStat.While(node, workList)
 	local condition = node.condition
 	local trueEdge, falseEdge = node.trueEdge, node.falseEdge

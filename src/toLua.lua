@@ -218,6 +218,30 @@ function stringOfStat.IfStatement(node, buffer, indent)
 	table.insert(buffer, indent .. 'end')
 end
 
+function stringOfStat.GenericFor(node, buffer, indent)
+	local vars, exps, body = node.vars, node.exps, node.body
+
+	local varBuffer = {}
+	for _,var in ipairs(vars) do
+		table.insert(varBuffer, var.name)
+	end
+
+	local expBuffer = {}
+	for _,exp in ipairs(exps) do
+		table.insert(expBuffer, dispatchStringOfExp(exp, indent))
+	end
+
+	local varsStr = table.concat(varBuffer, ', ')
+	local expsStr = table.concat(expBuffer, ', ')
+
+	table.insert(buffer, indent ..
+		'for ' .. varsStr .. ' in ' .. expsStr .. ' do')
+
+	stringOfStatList(body.statements, buffer, '\t' .. indent)
+
+	table.insert(buffer, indent .. 'end')
+end
+
 function stringOfStat.While(node, buffer, indent)
 	local condition, body = node.condition, node.body
 
