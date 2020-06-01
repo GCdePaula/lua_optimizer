@@ -1,4 +1,5 @@
 local LatticeCell = require "lattice.cell"
+local Func = require "func"
 
 local Env = {}
 
@@ -18,21 +19,30 @@ type Env = {
 	-- used to resolve upvalues
 	previousEnv: Env optional
 	sharedCounter: {value: Int}
+	currentFunc: Func
+
+	funcs: [Func]
 }
 --]]
 
-
-function Env:Init(oldEnv)
-	local newEnv = {}
-
-	newEnv._vars = {}
+function Env:Init(oldEnv, startEdge, node)
+	local newEnv = {_vars = {}}
 
 	if oldEnv then
 		newEnv._previousEnv = oldEnv
-		newEnv._sharedCounter = oldEnv.sharedCounter
+		newEnv._sharedCounter = oldEnv._sharedCounter
+
+		local funcs = oldEnv.funcs
+		local currentFunc = Func:Init(#funcs+1, startEdge, node)
+		table.insert(funcs, currentFunc)
+		newEnv.funcs = funcs
+		newEnv.currentFunc = currentFunc
 	else
 		newEnv._previousEnv = false
 		newEnv._sharedCounter = {value = 0}
+
+		newEnv.funcs = {}
+		newEnv.currentFunc = false
 	end
 
 	setmetatable(newEnv, self)
@@ -101,5 +111,12 @@ function Env:getVar(name)
 	end
 end
 
+function Env:getFuncs()
+	return self.funcs
+end
+
+function Env:getCurrentFunc()
+	return self.currentFunc
+end
 
 return Env

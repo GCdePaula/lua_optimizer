@@ -340,7 +340,8 @@ local function createLuaGrammar()
 	)
 
 	rules.Label = doublecolon * V"Name" * doublecolon
-	rules.NameList = V"Name" * (comma * V"Name")^0
+	rules.WrappedName = tagWrap('LocalVar', tagP('name', V"Name"))
+	rules.NameList = V"WrappedName" * (comma * V"WrappedName")^0
 	rules.LocalVarList = V"LocalVar" * (comma * V"LocalVar")^0
 	rules.LocalVar = tagWrap('LocalVar', tagP('name', V"Name") * tagP('attribute', V"Attrib"))
 

@@ -102,6 +102,7 @@ function propagateExp.TableConstructor(node)
   end
 end
 
+function propagateExp.AnonymousFunction() end
 
 local propagateStat = {}
 local function dispatchPropagateStatFromEdge(edge)
@@ -216,8 +217,12 @@ end
 
 function propagateStat.EndNode() end
 
-local function constantPropagation(startEdge)
+local function constantPropagation(startEdge, closureEdges)
 	dispatchPropagateStatFromEdge(startEdge)
+
+  for _,func in ipairs(closureEdges) do
+    dispatchPropagateStatFromEdge(func)
+  end
 end
 
 return constantPropagation

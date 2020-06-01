@@ -1,4 +1,5 @@
 local Var = require "lattice.var"
+local Element = require "lattice.element"
 
 local Cell = {}
 
@@ -80,6 +81,12 @@ function Cell:copy()
 
 	setmetatable(newCell, getmetatable(self))
 	return newCell
+end
+
+function Cell:bottomAllVars()
+	for _,var in ipairs(self._vars) do
+		var:setElement(Element:InitWithBottom())
+	end
 end
 
 

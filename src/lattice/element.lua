@@ -63,6 +63,12 @@ function Element:InitWithString(s)
 	return newElement
 end
 
+function Element:InitWithFunc(i)
+	local newElement = init(self)
+	newElement.tag = "Func"
+	newElement.number = i
+	return newElement
+end
 
 -- Returns true and number if number,
 -- or false if not a number.
@@ -93,6 +99,15 @@ function Element:getString()
 		return false
 	end
 end
+
+function Element:getFunc()
+	if self.tag == 'Func' then
+		return true, self.number
+	else
+		return false
+	end
+end
+
 
 -- Returns true, value and AST tag if constant,
 -- or false if not constant.

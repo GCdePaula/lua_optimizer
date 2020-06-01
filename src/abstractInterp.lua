@@ -124,6 +124,12 @@ function processExp.TableConstructor(node, cell)
 	return newElement
 end
 
+function processExp.AnonymousFunction(node, _)
+	local newElement = Element:InitWithFunc(node.funcIndex)
+	node.element = newElement
+	return newElement
+end
+
 local processStat = {}
 local function dispatchProcessStat(node, workList)
   if node.tag == 'EndNode' then
@@ -153,7 +159,7 @@ function processStat.Assign(node, workList)
 			if var.tag == 'Var' then
 				cell:setElementToVar(var.name, expElement)
 			else
-				-- 
+				--
 			end
 		end
 	end
@@ -282,7 +288,6 @@ function processStat.Block()
 	error("process block!")
 end
 
-
 local function findFixedPoint(startEdge)
 	local workList = newWorkList()
 	local edge = startEdge
@@ -295,4 +300,15 @@ local function findFixedPoint(startEdge)
 	until not edge
 end
 
-return findFixedPoint
+return function(startEdge, closureEdges)
+	findFixedPoint(startEdge)
+
+	for _,edge in ipairs(closureEdges) do
+		local cell = edge:getToNode().inCell
+		if cell then
+			-- Set all parameters to bottom
+			cell:bottomAllVars()
+			findFixedPoint(edge)
+		end
+	end
+end

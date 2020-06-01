@@ -24,19 +24,38 @@ end
 --]]
 
 local stringOfExp = {}
-local function dispatchStringOfExp(exp)
-	return stringOfExp[exp.tag](exp)
+local stringOfStat = {}
+
+
+local function dispatchStringOfStat(stat, buffer, indent)
+	if stat.visited then
+		return stringOfStat[stat.tag](stat, buffer, indent)
+	end
+end
+
+local function stringOfStatList(list, buffer, indent)
+	local head = list.head
+
+	while head do
+		dispatchStringOfStat(head, buffer, indent)
+		list = list.tail
+		head = list.head
+	end
+end
+
+local function dispatchStringOfExp(exp, indent)
+	return stringOfExp[exp.tag](exp, indent)
 end
 
 setmetatable(stringOfExp, {__index = function(_)
-	return function(exp)
+	return function(exp, indent)
 		local tag = exp.tag
 		local str
 		if tag == 'u-' then
-			str = '-' .. dispatchStringOfExp(exp.exp)
+			str = '-' .. dispatchStringOfExp(exp.exp, indent)
 
 		elseif tag == 'u~' then
-			str = '~' .. dispatchStringOfExp(exp.exp)
+			str = '~' .. dispatchStringOfExp(exp.exp, indent)
 
 		elseif LuaOps.binops[tag]
 			or LuaOps.logbinops [tag]
@@ -44,10 +63,10 @@ setmetatable(stringOfExp, {__index = function(_)
 
 			local lhs = exp.lhs
 			local rhs = exp.rhs
-			str = dispatchStringOfExp(lhs) .. tag .. dispatchStringOfExp(rhs)
+			str = dispatchStringOfExp(lhs, indent) .. tag .. dispatchStringOfExp(rhs, indent)
 
 		elseif LuaOps.unops[tag] then
-			str = tag .. dispatchStringOfExp(exp.exp)
+			str = tag .. dispatchStringOfExp(exp.exp, indent)
 
 		else
 			error('stringOfExp tag not implemented ' .. tag)
@@ -77,40 +96,40 @@ function stringOfExp.VarExp(exp)
 	return exp.name
 end
 
-function stringOfExp.IndexationExp(node)
+function stringOfExp.IndexationExp(node, indent)
 	local index, exp = node.index, node.exp
-	local indexStr = dispatchStringOfExp(index)
-	local expStr = dispatchStringOfExp(exp)
+	local indexStr = dispatchStringOfExp(index, indent)
+	local expStr = dispatchStringOfExp(exp, indent)
 
 	return expStr .. '[' .. indexStr .. ']'
 end
 
-function stringOfExp.FunctionCall(node)
-	local funcStr = dispatchStringOfExp(node.func)
+function stringOfExp.FunctionCall(node, indent)
+	local funcStr = dispatchStringOfExp(node.func, indent)
 
 	local args = {}
 	for _,arg in ipairs(node.args) do
-		table.insert(args, dispatchStringOfExp(arg))
+		table.insert(args, dispatchStringOfExp(arg, indent))
 	end
 	local argsStr = table.concat(args, ', ')
 
 	return funcStr .. '(' .. argsStr .. ')'
 end
 
-function stringOfExp.TableConstructor(node)
+function stringOfExp.TableConstructor(node, indent)
 	local fields = {}
 	for _,field in ipairs(node.fields) do
-    local value = dispatchStringOfExp(field.value)
-    local key
+		local value = dispatchStringOfExp(field.value, indent)
+		local key
 
-    local tag = field.tag
-    if tag == 'ExpAssign' then
-      key = '[ ' .. dispatchStringOfExp(field.exp) .. ' ]' .. ' = '
-    elseif tag == 'NameAssign' then
-      key = field.name .. ' = '
-    else
-      key = ""
-    end
+		local tag = field.tag
+		if tag == 'ExpAssign' then
+			key = '[ ' .. dispatchStringOfExp(field.exp, indent) .. ' ]' .. ' = '
+		elseif tag == 'NameAssign' then
+			key = field.name .. ' = '
+		else
+			key = ""
+		end
 		table.insert(fields, key .. value)
 	end
 
@@ -118,23 +137,24 @@ function stringOfExp.TableConstructor(node)
 end
 
 
-local stringOfStat = {}
+function stringOfExp.AnonymousFunction(node, indent)
+	local buffer = {}
 
-local function dispatchStringOfStat(stat, buffer, indent)
-	if stat.visited then
-		return stringOfStat[stat.tag](stat, buffer, indent)
+	local params = {}
+	for _,param in ipairs(node.params) do
+		if param.tag == 'LocalVar' then
+			table.insert(params, param.name)
+		else
+			table.insert(params, '...')
+		end
 	end
+
+	table.insert(buffer, 'function(' .. table.concat(params, ', ') .. ')')
+	stringOfStatList(node.body.statements, buffer, '\t' .. indent)
+	table.insert(buffer, indent .. 'end')
+	return table.concat(buffer, '\n')
 end
 
-local function stringOfStatList(list, buffer, indent)
-	local head = list.head
-
-	while head do
-		dispatchStringOfStat(head, buffer, indent)
-		list = list.tail
-		head = list.head
-	end
-end
 
 function stringOfStat.Assign(stat, buffer, indent)
 	local vars, exps = stat.vars, stat.exps
@@ -144,15 +164,15 @@ function stringOfStat.Assign(stat, buffer, indent)
 		if var.tag == 'Var' then
 			table.insert(varBuffer, var.name)
 		else
-			local indexStr = dispatchStringOfExp(var.index)
-			local expStr = dispatchStringOfExp(var.exp)
+			local indexStr = dispatchStringOfExp(var.index, indent)
+			local expStr = dispatchStringOfExp(var.exp, indent)
 			table.insert(varBuffer, expStr .. '[ ' .. indexStr .. ' ]')
 		end
 	end
 
 	local expBuffer = {}
 	for _,exp in ipairs(exps) do
-		table.insert(expBuffer, dispatchStringOfExp(exp))
+		table.insert(expBuffer, dispatchStringOfExp(exp, indent))
 	end
 
 	table.insert(buffer, indent ..
@@ -170,7 +190,7 @@ function stringOfStat.LocalAssign(stat, buffer, indent)
 	if #exps ~= 0 then
 		local expBuffer = {}
 		for _,exp in ipairs(exps) do
-			table.insert(expBuffer, dispatchStringOfExp(exp))
+			table.insert(expBuffer, dispatchStringOfExp(exp, indent))
 		end
 
 		table.insert(buffer, indent .. 'local ' ..
@@ -186,7 +206,7 @@ function stringOfStat.IfStatement(node, buffer, indent)
 	local thenBody, elseBody = node.thenBody, node.elseBody
 
 	table.insert(buffer, indent ..
-		'if ' .. dispatchStringOfExp(condition) .. ' then')
+		'if ' .. dispatchStringOfExp(condition, indent) .. ' then')
 
 	stringOfStatList(thenBody.statements, buffer, '\t' .. indent)
 
@@ -202,7 +222,7 @@ function stringOfStat.While(node, buffer, indent)
 	local condition, body = node.condition, node.body
 
 	table.insert(buffer, indent ..
-		'while ' .. dispatchStringOfExp(condition) .. ' do')
+		'while ' .. dispatchStringOfExp(condition, indent) .. ' do')
 
 	stringOfStatList(body.statements, buffer, '\t' .. indent)
 
@@ -217,7 +237,7 @@ function stringOfStat.Repeat(node, buffer, indent)
 	stringOfStatList(body.statements, buffer, '\t' .. indent)
 
 	table.insert(buffer, indent .. 'until '
-		.. dispatchStringOfExp(condition))
+		.. dispatchStringOfExp(condition, indent))
 end
 
 function stringOfStat.Do(node, buffer, indent)
@@ -229,11 +249,11 @@ end
 function stringOfStat.FunctionCallStat(node, buffer, indent)
 	local func, args = node.func, node.args
 
-	local funcString = dispatchStringOfExp(func)
+	local funcString = dispatchStringOfExp(func, indent)
 
 	local argsStr = {}
 	for _,arg in ipairs(args) do
-		table.insert(argsStr, dispatchStringOfExp(arg))
+		table.insert(argsStr, dispatchStringOfExp(arg, indent))
 	end
 
 	table.insert(buffer, indent .. funcString

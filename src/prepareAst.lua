@@ -1,6 +1,7 @@
 local LuaOps = require "luaOps"
 local Edge = require "edge"
 local Env = require "env"
+local Func = require "func"
 
 local function concatArrays(a, b)
 	for _, v in ipairs(b) do
@@ -31,6 +32,14 @@ local function renameVarExp(varExp, newName)
 	end
 end
 
+
+
+local function setToEdges(edges, target)
+	for _,edge in ipairs(edges) do
+		edge:setToNode(target)
+	end
+end
+
 local function newControlTable()
 	local control = {_loops = {}}
 
@@ -52,10 +61,28 @@ local function newControlTable()
 end
 
 local prepareExp = {}
+local prepareStatement = {}
+
+local function dispatchPrepareStat(node, inEdges, env, control)
+	print(node.tag)
+	return prepareStatement[node.tag](node, inEdges, env, control)
+end
+
 local function dispatchPrepareExp(node, env)
-  print(node.tag)
 	return prepareExp[node.tag](node, env)
 end
+
+-- returns outEdges, and if continues
+local function prepareStatementList(list, inEdges, env, control)
+	local head = list.head
+	if not head then
+		return inEdges
+	end
+
+	local outEdges = dispatchPrepareStat(head, inEdges, env, control)
+	return prepareStatementList(list.tail, outEdges, env, control)
+end
+
 
 setmetatable(prepareExp, {__index = function(_)
 		return function(node, env)
@@ -111,30 +138,28 @@ function prepareExp.TableConstructor(node, env)
   end
 end
 
-local prepareStatement = {}
 
-local function dispatchPrepareStat(node, inEdges, env, control)
-	return prepareStatement[node.tag](node, inEdges, env, control)
-end
+function prepareExp.AnonymousFunction(node, env)
+	local startEdge = Edge:InitStartEdge()
+	local newEnv = Env:Init(env, startEdge, node)
+	local control = newControlTable()
 
-local function setToEdges(edges, target)
-	for _,edge in ipairs(edges) do
-		edge:setToNode(target)
-	end
-end
-
--- returns outEdges, and if continues
-local function prepareStatementList(list, inEdges, env, control)
-	local head = list.head
-	if not head then
-		return inEdges
+	local params = node.params
+	for k, param in ipairs(params) do
+		if param.tag == 'LocalVar' then
+			local newName = newEnv:newLocalVar(param)
+			params[k].name = newName
+		end
 	end
 
-	local tail = list.tail
-	local outEdges = dispatchPrepareStat(head, inEdges, env, control)
+	node.funcIndex = newEnv:getCurrentFunc():getIndex()
 
-	return prepareStatementList(tail, outEdges, env, control)
+	local endEdges = prepareStatementList(node.body.statements, {startEdge}, newEnv, control)
+	local endNode = {tag = 'EndNode', inEdges=endEdges}
+	setToEdges(endEdges, endNode)
 end
+
+
 
 function prepareStatement.Block(node, inEdges, env, control)
 	local oldScope = env:startBlock()
@@ -321,11 +346,21 @@ function prepareStatement.Nop(_, inEdges)
 end
 
 return function(ast)
-		local env = Env:Init()
-		local control = newControlTable()
-		local startEdge = Edge:InitStartEdge(env)
-		local endEdges = prepareStatementList(ast.statements, {startEdge}, env, control)
-		local endNode = {tag = 'EndNode', inEdges=endEdges}
-		setToEdges(endEdges, endNode)
-		return ast, startEdge, endNode
+
+	-- Prepare Chunk
+	local env = Env:Init()
+	local control = newControlTable()
+	local startEdge = Edge:InitStartEdge()
+	local endEdges = prepareStatementList(ast.statements, {startEdge}, env, control)
+	local endNode = {tag = 'EndNode', inEdges=endEdges}
+	setToEdges(endEdges, endNode)
+
+	-- Get all closure's start edges.
+	local funcs = env:getFuncs()
+	local funcsEdges = {}
+	for _,func in ipairs(funcs) do
+		table.insert(funcsEdges, func:getStartEdge())
 	end
+
+	return startEdge, funcsEdges
+end

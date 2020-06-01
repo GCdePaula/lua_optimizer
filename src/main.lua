@@ -27,12 +27,12 @@ if content then
 	-- print(program)
 	pretty.dump(ast)
   ---[[
-	local _, startEdge  = prepare(ast)
+	local startEdge, closures  = prepare(ast)
 	-- local program = toLua(ast)
 	-- print(program)
 
-	findFixedPoint(startEdge)
-	propagate(startEdge)
+	findFixedPoint(startEdge, closures)
+	propagate(startEdge, closures)
 	local program = toLua(ast)
 	print(program)
   --]]
