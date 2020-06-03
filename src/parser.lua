@@ -432,8 +432,8 @@ local function createLuaGrammar()
 		+ tagWrap("MethodCall", colon * tagP('method', V"Name") * tagP('args', V"Args"))
 
 	rules.Args = open_paren * Ct(V"ExpList"^-1) * close_paren
-		+ V"TableConstructor"
-		+ V"LiteralString"
+		+ Ct(V"TableConstructor")
+		+ Ct(V"LiteralString")
 
 	rules.AnonymousFunction = tagWrap('AnonymousFunction',
 		open_paren * tagP('params', Ct(V"Parameters"^-1)) * close_paren * tagP('body', V"Block") * End
@@ -448,7 +448,7 @@ local function createLuaGrammar()
 		+ tagWrap("Exp", tagP('value', V"Exp"))
 
 	rules.FunctionCallStat = Cf(V"ExpPrefix" * V"CallStatSuffix", nestExpression)
-		/ function(x) x.tag = "FunctionCallStat"; return x end
+		/ function(x) if x.tag == "FunctionCall" then x.tag = "FunctionCallStat" else x.tag = "MethodCallStat" end return x end
 
 	rules.CallStatSuffix = (V"Indexation"^0 * V"CallSuffix" * (V"CallStatSuffix")^-1)
 

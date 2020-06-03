@@ -97,8 +97,9 @@ function processExp.IndexationExp(node, cell)
 	return newElement
 end
 
-function processExp.FunctionCall(node, cell)
-	dispatchProcessExp(node.func, cell)
+
+local function processFuncCallExp(node, cell, exp)
+	dispatchProcessExp(exp, cell)
 
 	for _,v in ipairs(node.args) do
 		dispatchProcessExp(v, cell)
@@ -107,6 +108,14 @@ function processExp.FunctionCall(node, cell)
 	local newElement = Element:InitWithBottom()
 	node.element = newElement
 	return newElement
+end
+
+function processExp.FunctionCall(node, cell)
+	return processFuncCallExp(node, cell, node.func)
+end
+
+function processExp.MethodCall(node, cell)
+	return processFuncCallExp(node, cell, node.receiver)
 end
 
 function processExp.TableConstructor(node, cell)
@@ -130,6 +139,12 @@ function processExp.AnonymousFunction(node, _)
 	return newElement
 end
 
+function processExp.Vararg(node)
+	local newElement = Element:InitWithBottom()
+	node.element = newElement
+	return newElement
+end
+
 local processStat = {}
 local function dispatchProcessStat(node, workList)
   if node.tag == 'EndNode' then
@@ -143,23 +158,45 @@ local function dispatchProcessStat(node, workList)
 	end
 end
 
+local function getExpsElements(exps, cell)
+	local multipleReturns = false
+
+	local expElements, nexps = {}, #exps
+	for k,exp in ipairs(exps) do
+		local element = dispatchProcessExp(exp, cell)
+		table.insert(expElements, element)
+
+		-- Breaking compositionality
+		if k == nexps then
+			local tag = exp.tag
+			if tag == 'FunctionCall' or
+				tag == 'MethodCall' or
+				tag == 'Vararg' then
+				multipleReturns = true
+			end
+		end
+	end
+
+	return expElements, multipleReturns
+end
+
 function processStat.Assign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local cell = node.inCell:copy()
 
-	local expElements = {}
-	for _,exp in ipairs(exps) do
-		local element = dispatchProcessExp(exp, cell)
-		table.insert(expElements, element)
-	end
+	local expElements, multipleReturns = getExpsElements(exps, cell)
 
 	for k,var in ipairs(vars) do
 		local expElement = expElements[k]
-		if expElement then
-			if var.tag == 'Var' then
+		if var.tag == 'Var' then
+			if expElement then
 				cell:setElementToVar(var.name, expElement)
 			else
-				--
+				if multipleReturns then
+					cell:setElementToVar(var.name, Element:InitWithBottom())
+				else
+					cell:setElementToVar(var.name, Element:InitWithNil())
+				end
 			end
 		end
 	end
@@ -172,11 +209,7 @@ function processStat.LocalAssign(node, workList)
 	local vars, exps = node.vars, node.exps
 	local cell = node.inCell:copy()
 
-	local expElements = {}
-	for _,exp in ipairs(exps) do
-		local element = dispatchProcessExp(exp, cell)
-		table.insert(expElements, element)
-	end
+	local expElements, multipleReturns = getExpsElements(exps, cell)
 
 	for k,var in ipairs(vars) do
 		cell:addVar(var.name)
@@ -184,7 +217,11 @@ function processStat.LocalAssign(node, workList)
 		if expElement then
 			cell:setElementToVar(var.name, expElement)
 		else
-			cell:setElementToVar(var.name, Element:InitWithNil())
+			if multipleReturns then
+				cell:setElementToVar(var.name, Element:InitWithBottom())
+			else
+				cell:setElementToVar(var.name, Element:InitWithNil())
+			end
 		end
 	end
 
@@ -284,11 +321,11 @@ function processStat.Repeat(node, workList)
 	end
 end
 
-function processStat.FunctionCallStat(node, workList)
-	local func, args = node.func, node.args
+local function processFuncCallStat(node, workList, exp)
+	local args = node.args
 	local cell = node.inCell:copy()
 
-	dispatchProcessExp(func, cell)
+	dispatchProcessExp(exp, cell)
 	for _,arg in ipairs(args) do
 		dispatchProcessExp(arg, cell)
 	end
@@ -297,9 +334,28 @@ function processStat.FunctionCallStat(node, workList)
 	workList:addEdge(node.outEdge)
 end
 
+function processStat.FunctionCallStat(node, workList)
+	processFuncCallStat(node, workList, node.func)
+end
+
+function processStat.MethodCallStat(node, workList)
+	processFuncCallStat(node, workList, node.receiver)
+end
+
 function processStat.Break(node, workList)
 	local outEdge = node.outEdge
 	workList:addEdge(outEdge)
+end
+
+function processStat.Return(node)
+	local cell = node.inCell:copy()
+	local exps = node.exps
+	if exps then
+		for _,exp in ipairs(exps) do
+			dispatchProcessExp(exp, cell)
+		end
+	end
+	node.outCell = cell
 end
 
 function processStat.EndNode() end

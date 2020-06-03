@@ -116,26 +116,35 @@ function prepareExp.VarExp(node, env)
 	renameVarExp(node, newName)
 end
 
-function prepareExp.FunctionCall(node, env)
-	local newName = env:getVar(node.name)
-	renameVarExp(node.func, newName)
+
+local function prepareFuncCallExp(node, env, exp)
+	dispatchPrepareExp(exp, env)
 
 	for _,v in ipairs(node.args) do
 		dispatchPrepareExp(v, env)
 	end
 end
 
-function prepareExp.TableConstructor(node, env)
-  local fields = node.fields
-
-  for _,field in ipairs(fields) do
-    dispatchPrepareExp(field.value, env)
-    if field.tag == 'ExpAssign' then
-      dispatchPrepareExp(field.exp, env)
-    end
-  end
+function prepareExp.FunctionCall(node, env)
+	return prepareFuncCallExp(node, env, node.func)
 end
 
+function prepareExp.MethodCall(node, env)
+	return prepareFuncCallExp(node, env, node.receiver)
+end
+
+function prepareExp.TableConstructor(node, env)
+	local fields = node.fields
+
+	for _,field in ipairs(fields) do
+		dispatchPrepareExp(field.value, env)
+		if field.tag == 'ExpAssign' then
+			dispatchPrepareExp(field.exp, env)
+		else
+			env:addVararg()
+		end
+  end
+end
 
 function prepareExp.AnonymousFunction(node, env)
 	local startEdge = Edge:InitStartEdge()
@@ -145,7 +154,7 @@ function prepareExp.AnonymousFunction(node, env)
 	local params = node.params
 	for k, param in ipairs(params) do
 		if param.tag == 'LocalVar' then
-			local newName = newEnv:newLocalVar(param)
+			local newName = newEnv:newLocalVar(param.name)
 			params[k].name = newName
 		end
 	end
@@ -157,7 +166,7 @@ function prepareExp.AnonymousFunction(node, env)
 	setToEdges(endEdges, endNode)
 end
 
-
+function prepareExp.Vararg() end
 
 function prepareStatement.Block(node, inEdges, env, control)
 	local oldScope = env:startBlock()
@@ -345,11 +354,11 @@ function prepareStatement.Assign(node, inEdges, env)
 	return {outEdge}
 end
 
-function prepareStatement.FunctionCallStat(node, inEdges, env)
+local function prepareFuncStat(node, inEdges, env, exp)
 	setToEdges(inEdges, node)
 	node.inEdges = inEdges
 
-	dispatchPrepareExp(node.func, env)
+	dispatchPrepareExp(exp, env)
 
 	for _,arg in ipairs(node.args) do
 		dispatchPrepareExp(arg, env)
@@ -364,6 +373,15 @@ function prepareStatement.FunctionCallStat(node, inEdges, env)
 	return {outEdge}
 end
 
+function prepareStatement.FunctionCallStat(node, inEdges, env)
+	return prepareFuncStat(node, inEdges, env, node.func)
+end
+
+function prepareStatement.MethodCallStat(node, inEdges, env)
+	return prepareFuncStat(node, inEdges, env, node.receiver)
+end
+
+
 function prepareStatement.Break(node, inEdges, env, control)
 	setToEdges(inEdges, node)
 	node.inEdges = inEdges
@@ -372,6 +390,25 @@ function prepareStatement.Break(node, inEdges, env, control)
 	local outEdge = Edge:InitWithFromNode(node)
 	node.outEdge = outEdge
 	control:pushBreakEdge(outEdge)
+
+	return {}
+end
+
+
+function prepareStatement.Return(node, inEdges, env)
+	setToEdges(inEdges, node)
+	node.inEdges = inEdges
+	node.inCell = env:newLatticeCell()
+
+	local exps = node.exps
+
+	if exps then
+		for _,exp in ipairs(exps) do
+			dispatchPrepareExp(exp, env)
+		end
+	end
+
+	node.outEdge = false
 
 	return {}
 end

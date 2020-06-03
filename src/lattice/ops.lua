@@ -9,6 +9,12 @@ op["^"] = function(e1, e2)
 	else return Element:InitWithBottom() end
 end
 
+op[".."] = function(e1, e2)
+	local b1, s1 = e1:getString()
+	local b2, s2 = e2:getString()
+	if b1 and b2 then return Element:InitWithNumber(s1 .. s2)
+	else return Element:InitWithBottom() end
+end
 
 op["*"] = function(e1, e2)
 	local b1, n1 = e1:getNumber()

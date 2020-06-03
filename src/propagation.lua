@@ -91,6 +91,13 @@ function propagateExp.FunctionCall(node)
 	end
 end
 
+function propagateExp.MethodCall(node)
+	dispatchPropagateExp(node.receiver)
+	for _,v in ipairs(node.args) do
+		dispatchPropagateExp(v)
+	end
+end
+
 function propagateExp.TableConstructor(node)
   local fields = node.fields
 
@@ -103,6 +110,8 @@ function propagateExp.TableConstructor(node)
 end
 
 function propagateExp.AnonymousFunction() end
+
+function propagateExp.Vararg() end
 
 local propagateStat = {}
 local function dispatchPropagateStatFromEdge(edge)
@@ -203,7 +212,7 @@ function propagateStat.Repeat(node)
 			node.tag = 'Do'
 			return dispatchPropagateStatFromEdge(node.continueEdge)
 		else
-			return dispatchPropagateStatFromEdge(node.repeatEdge)
+			-- return dispatchPropagateStatFromEdge(node.repeatEdge)
 		end
 	else
 		dispatchPropagateStatFromEdge(node.continueEdge)
@@ -222,8 +231,28 @@ function propagateStat.FunctionCallStat(node)
 	dispatchPropagateStatFromEdge(node.outEdge)
 end
 
+function propagateStat.MethodCallStat(node)
+	local receiver, args = node.receiver, node.args
+
+	dispatchPropagateExp(receiver)
+	for _,arg in ipairs(args) do
+		dispatchPropagateExp(arg)
+	end
+
+	dispatchPropagateStatFromEdge(node.outEdge)
+end
+
 function propagateStat.Break(node)
 	dispatchPropagateStatFromEdge(node.outEdge)
+end
+
+function propagateStat.Return(node)
+	local exps = node.exps
+	if exps then
+		for _,exp in ipairs(exps) do
+			dispatchPropagateExp(exp)
+		end
+	end
 end
 
 function propagateStat.EndNode() end

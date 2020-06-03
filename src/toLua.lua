@@ -66,7 +66,7 @@ setmetatable(stringOfExp, {__index = function(_)
 			str = dispatchStringOfExp(lhs, indent) .. tag .. dispatchStringOfExp(rhs, indent)
 
 		elseif LuaOps.unops[tag] then
-			str = tag .. dispatchStringOfExp(exp.exp, indent)
+			str = tag .. ' ' .. dispatchStringOfExp(exp.exp, indent)
 
 		else
 			error('stringOfExp tag not implemented ' .. tag)
@@ -96,6 +96,7 @@ function stringOfExp.VarExp(exp)
 	return exp.name
 end
 
+
 function stringOfExp.IndexationExp(node, indent)
 	local index, exp = node.index, node.exp
 	local indexStr = dispatchStringOfExp(index, indent)
@@ -114,6 +115,19 @@ function stringOfExp.FunctionCall(node, indent)
 	local argsStr = table.concat(args, ', ')
 
 	return funcStr .. '(' .. argsStr .. ')'
+end
+
+function stringOfExp.MethodCall(node, indent)
+	local method = node.method
+	local receiverStr = dispatchStringOfExp(node.receiver, indent)
+
+	local args = {}
+	for _,arg in ipairs(node.args) do
+		table.insert(args, dispatchStringOfExp(arg, indent))
+	end
+	local argsStr = table.concat(args, ', ')
+
+	return receiverStr .. ':' .. method .. '(' .. argsStr .. ')'
 end
 
 function stringOfExp.TableConstructor(node, indent)
@@ -154,6 +168,12 @@ function stringOfExp.AnonymousFunction(node, indent)
 	table.insert(buffer, indent .. 'end')
 	return table.concat(buffer, '\n')
 end
+
+function stringOfExp.Vararg()
+	return '...'
+end
+
+
 
 
 function stringOfStat.Assign(stat, buffer, indent)
@@ -285,8 +305,39 @@ function stringOfStat.FunctionCallStat(node, buffer, indent)
 
 end
 
+function stringOfStat.MethodCallStat(node, buffer, indent)
+	local receiver, method, args = node.receiver, node.method, node.args
+
+	local receiverStr = dispatchStringOfExp(receiver, indent)
+
+	local argsStr = {}
+	for _,arg in ipairs(args) do
+		table.insert(argsStr, dispatchStringOfExp(arg, indent))
+	end
+
+	table.insert(buffer, indent .. receiverStr .. ':' .. method
+		.. '(' .. table.concat(argsStr, ', ') .. ')')
+
+end
+
 function stringOfStat.Break(_, buffer, indent)
 	table.insert(buffer, indent .. 'break')
+end
+
+function stringOfStat.Return(node, buffer, indent)
+	local exps = node.exps
+
+	if exps then
+		local expStr = {}
+		for _,exp in ipairs(exps) do
+			table.insert(expStr, dispatchStringOfExp(exp, indent))
+		end
+
+		table.insert(buffer, indent .. 'return '
+			.. table.concat(expStr, ', '))
+	else
+		table.insert(buffer, indent .. 'return')
+	end
 end
 
 function stringOfStat.Nop() end

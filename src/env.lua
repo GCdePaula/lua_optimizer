@@ -90,6 +90,10 @@ function Env:newLocalVar(name)
 	return newName
 end
 
+function Env:addVararg()
+	self._vars['...'] = '...'
+end
+
 function Env:getVar(name)
 	local newName = self._vars[name]
 	if newName then
