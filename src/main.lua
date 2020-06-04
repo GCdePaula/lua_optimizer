@@ -1,5 +1,6 @@
+
 package.path = package.path .. ";./libs/?.lua"
-package.cpath = package.path .. ";./libs/?/?.so"
+package.cpath = "./libs/?/?.so;" .. package.cpath
 
 pretty = require "pl.pretty"
 local parser = require "parser"
@@ -10,6 +11,7 @@ local toLua = require "toLua"
 
 local params = {...}
 local filepath = params[1]
+local target = params[2]
 
 local function readFile(path)
 	local file = io.open(path, "rb")
@@ -34,6 +36,17 @@ if content then
 	findFixedPoint(startEdge, closures)
 	propagate(startEdge, closures)
 	local program = toLua(ast)
-	print(program)
+	-- print(program)
   --]]
+
+	if target then
+		local file = io.open(target, "w+")
+		file:write(program)
+		file:close()
+	else
+		return program
+	end
+else
+	print("failed to open content")
+	return false
 end

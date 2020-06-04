@@ -10,8 +10,11 @@ package.path = package.path
   ..";../src/libs/?/?.lua"
   ..";../src/libs/?/init.lua"
 
-package.cpath = package.cpath
+package.cpath =
   -- Add tests libs path
-  ..";./libs/?.so"
-  ..";./libs/?/?.so"
+  "./libs/?/?.so;"
+  .."./libs/?.so;"
+  .."../src/libs/?.so;"
+  .."../src/libs/?/?.so;"
+  .. package.cpath
 

@@ -8,3 +8,5 @@ lua
 luac
 
 lua\@5.4/src/liblua.a
+
+tests/libs/term/core.so.1.0.1

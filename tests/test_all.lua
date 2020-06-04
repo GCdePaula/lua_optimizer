@@ -1,35 +1,62 @@
 require 'paths'
 require 'busted.runner'()
 
-describe("a test", function()
-  -- tests to here
+local function readFile(path)
+	local file = io.open(path, "rb")
+	if not file then return nil end
+	local content = file:read "*all"
+	file:close()
+	return content
+end
+
+describe("self optimization", function()
+	local path_to_src = "../src/"
+	local target_dir = "./self_opt/"
+	local paths = {
+		"abstractInterp.lua",
+		"edge.lua",
+		"env.lua",
+		"func.lua",
+		"luaOps.lua",
+		"main.lua",
+		"parser.lua",
+		"prepareAst.lua",
+		"propagation.lua",
+		"toLua.lua",
+		"lattice/cell.lua",
+		"lattice/element.lua",
+		"lattice/ops.lua",
+		"lattice/var.lua",
+	}
+	local src_strings = {}
+
+	setup(function()
+		local program = loadfile(path_to_src .. "main.lua")
+
+		for _,name in ipairs(paths) do
+			local input = path_to_src .. name
+			local output = target_dir .. name
+
+			program(input, output)
+
+			local output_str = readFile(output)
+			src_strings[name] = output_str
+		end
+
+	end)
+
+	it("test self optimized optimizer", function()
+		local program = loadfile(target_dir .. "main.lua")
+
+		for _,name in ipairs(paths) do
+			local input = path_to_src .. name
+
+			program(input, 'temp.out')
+
+			local output = readFile('temp.out')
+			assert.equal(src_strings[name], output)
+		end
+	end)
+
 end)
 
-describe("Busted unit testing framework", function()
-  describe("should be awesome", function()
-    it("should be easy to use", function()
-      assert.truthy("Yup.")
-    end)
-
-    it("should have lots of features", function()
-      -- deep check comparisons!
-      assert.are.same({ table = "great"}, { table = "great" })
-
-      -- or check by reference!
-      assert.are_not.equal({ table = "great"}, { table = "great"})
-
-      assert.truthy("this is a string") -- truthy: not false or nil
-
-      assert.True(1 == 1)
-      assert.is_true(1 == 1)
-
-      assert.falsy(nil)
-      assert.has_error(function() error("Wat") end, "Wat")
-    end)
-
-    it("should provide some shortcuts to common functions", function()
-      assert.are.unique({{ thing = 1 }, { thing = 2 }, { thing = 3 }})
-    end)
-
-  end)
-end)

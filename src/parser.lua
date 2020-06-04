@@ -205,7 +205,7 @@ local function createLuaGrammar()
 
 	local function globalFunctionDesugar(var, func)
 		if var.tag == 'MethodDef' then
-			table.insert(func.params, 1, 'self')
+			table.insert(func.params, 1, {name = 'self', tag = 'LocalVar'})
 			var.tag = 'Indexation'
 		end
 		return
@@ -217,7 +217,8 @@ local function createLuaGrammar()
 	end
 
 	local function nestFunctionDefinition(a, b)
-		if a.tag == 'Var' then a.tag = 'VarExp' end -- minor hack
+		if a.tag == 'Var' then a.tag = 'VarExp'
+		elseif a.tag == 'Indexation' then a.tag = 'IndexationExp' end -- minor hack
 		return {tag='Indexation', index=b, exp=a}
 	end
 
@@ -366,7 +367,12 @@ local function createLuaGrammar()
 
 	-- Functions ending in ':methodName'
 	rules.FunctionNameWithMethod = tagWrap('MethodDef',
-		tagP('exp', V"FunctionWithIndex" / function(a) if a.tag == 'Var' then a.tag = 'VarExp' end return a end)
+		tagP('exp', V"FunctionWithIndex"
+			/ function(a)
+				if a.tag == 'Var' then a.tag = 'VarExp'
+				elseif a.tag == 'Indexation' then a.tag = 'IndexationExp' end
+				return a
+			end)
 		* colon * tagP('index', tagWrap('StringLiteral', tagP('literal', V"Name")))
 	)
 
@@ -385,9 +391,14 @@ local function createLuaGrammar()
 
 	rules.VarList = Ct(V"Var" * (comma * V"Var")^0)
 	rules.Var = Cf(V"ExpPrefix" * V"VarSuffix", nestExpression)
+		/ function(i)
+				if i.tag == 'IndexationExp' then i.tag = 'Indexation' end
+				return i
+			end
+
 		+ tagWrap('Var', tagP('name', V"Name"))
 	rules.VarSuffix = (V"CallSuffix")^0
-		* (V"Indexation" / function(i) i.tag = 'Indexation' return i end) * (V"VarSuffix")^-1
+		* (V"Indexation") * (V"VarSuffix")^-1
 
 
 	rules.ExpList = V"Exp" * (comma * V"Exp")^0

@@ -1,4 +1,4 @@
-LUA_DIR := $(CURDIR)/lua/src
+LUA_DIR := $(CURDIR)/lua@5.4/src
 ALL_LIBS:= tests/libs src/libs
 
 .PHONY: all_libs $(ALL_LIBS)

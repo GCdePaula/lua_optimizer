@@ -140,8 +140,6 @@ function prepareExp.TableConstructor(node, env)
 		dispatchPrepareExp(field.value, env)
 		if field.tag == 'ExpAssign' then
 			dispatchPrepareExp(field.exp, env)
-		else
-			env:addVararg()
 		end
   end
 end
@@ -156,6 +154,8 @@ function prepareExp.AnonymousFunction(node, env)
 		if param.tag == 'LocalVar' then
 			local newName = newEnv:newLocalVar(param.name)
 			params[k].name = newName
+		else
+			env:addVararg()
 		end
 	end
 
