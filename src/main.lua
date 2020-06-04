@@ -27,7 +27,7 @@ if content then
 	local ast = parser.parse(content)
 	-- local program = toLua(ast)
 	-- print(program)
-	-- pretty.dump(ast)
+	pretty.dump(ast)
   ---[[
 	local startEdge, closures  = prepare(ast)
 	-- local program = toLua(ast)
@@ -36,7 +36,7 @@ if content then
 	findFixedPoint(startEdge, closures)
 	propagate(startEdge, closures)
 	local program = toLua(ast)
-	-- print(program)
+	print(program)
   --]]
 
 	if target then

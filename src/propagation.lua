@@ -154,15 +154,23 @@ function propagateStat.IfStatement(node)
 			-- Take only then branch
 			outEdge = node.thenEdge
 			body = node.thenBody
+
+			node.tag = 'Do'
+			node.body = body
+			dispatchPropagateStatFromEdge(outEdge)
 		else
 			-- Take only else branch
 			outEdge = node.elseEdge
 			body = node.elseBody
+
+			if body then
+				node.tag = 'Do'
+				node.body = body
+				dispatchPropagateStatFromEdge(outEdge)
+			else
+				node.tag = 'Nop'
+			end
 		end
-		-- propagate body
-		node.tag = 'Do'
-		node.body = body
-		dispatchPropagateStatFromEdge(outEdge)
 	else
 		dispatchPropagateStatFromEdge(node.thenEdge)
 		dispatchPropagateStatFromEdge(node.elseEdge)
