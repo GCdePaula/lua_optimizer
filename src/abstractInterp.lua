@@ -245,7 +245,6 @@ function processStat.IfStatement(node, workList)
 		else
 			workList:addEdge(elseEdge)
 		end
-
 	else
 		-- Both branches must be taken
 		workList:addEdge(thenEdge)

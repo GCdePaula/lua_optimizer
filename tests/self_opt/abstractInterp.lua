@@ -21,24 +21,27 @@ end
 _ENV["setmetatable"](v9, { __index = function(v13)
 	return function(v14, v15)
 		local v16 = v14["tag"]
-		if ((v3["binops"][v16]orv3["cmpops"][v16])orv3["logbinops"][v16]) then
+		if ((v3["binops"][v16] or v3["cmpops"][v16]) or v3["logbinops"][v16]) then
 			local v17
 			local v18
-			if ((v16=="^")or(v16=="..")) then
+			if ((v16 == "^") or (v16 == "..")) then
 				v17 = v10(v14["lhs"], v15)
 				v18 = v10(v14["rhs"], v15)
 			else
+				v18 = v10(v14["rhs"], v15)
+				v17 = v10(v14["lhs"], v15)
 			end
 			local v19 = v2[v16](v17, v18)
 			v14[ "element" ] = v19
 			return v19
 		else
-			if (v3["unops"][v16]orv3["unops"][v16]) then
+			if (v3["unops"][v16] or v3["unops"][v16]) then
 				local v20 = v10(v14["exp"], v15)
 				local v21 = v2[v16](v20)
 				v14[ "element" ] = v21
 				return v21
 			else
+				_ENV["error"](("Tag for prepare exp not implemented " .. v16))
 			end
 		end
 	end
@@ -96,7 +99,7 @@ v9[ "TableConstructor" ] = function(v52, v53)
 	local v54 = v52["fields"]
 	for v55, v56 in _ENV["ipairs"](v54) do
 		v10(v56["value"], v53)
-		if (v56["tag"]=="ExpAssign") then
+		if (v56["tag"] == "ExpAssign") then
 			v10(v56["exp"], v53)
 		end
 	end
@@ -117,11 +120,11 @@ end
 local v63 = {  }
 local v64
 v64 = function(v65, v66)
-	if (v65["tag"]=="EndNode") then
+	if (v65["tag"] == "EndNode") then
 		return
 	end
 	local v67 = v65["inCell"]:updateWithInEdges(v65["inEdges"])
-	if (v67or(not v65["touched"])) then
+	if (v67 or (not v65["touched"])) then
 		v65[ "touched" ] = true
 		return v63[v65["tag"]](v65, v66)
 	end
@@ -133,9 +136,9 @@ v68 = function(v69, v70)
 	for v74, v75 in _ENV["ipairs"](v69) do
 		local v76 = v10(v75, v70)
 		_ENV["table"]["insert"](v72, v76)
-		if (v74==v73) then
+		if (v74 == v73) then
 			local v77 = v75["tag"]
-			if (((v77=="FunctionCall")or(v77=="MethodCall"))or(v77=="Vararg")) then
+			if (((v77 == "FunctionCall") or (v77 == "MethodCall")) or (v77 == "Vararg")) then
 				v71 = true
 			end
 		end
@@ -148,10 +151,15 @@ v63[ "Assign" ] = function(v78, v79)
 	local v83, v84 = v68(v81, v82)
 	for v85, v86 in _ENV["ipairs"](v80) do
 		local v87 = v83[v85]
-		if (v86["tag"]=="Var") then
+		if (v86["tag"] == "Var") then
 			if v87 then
 				v82:setElementToVar(v86["name"], v87)
 			else
+				if v84 then
+					v82:setElementToVar(v86["name"], v1:InitWithBottom())
+				else
+					v82:setElementToVar(v86["name"], v1:InitWithNil())
+				end
 			end
 		end
 	end
@@ -168,6 +176,11 @@ v63[ "LocalAssign" ] = function(v88, v89)
 		if v97 then
 			v92:setElementToVar(v96["name"], v97)
 		else
+			if v94 then
+				v92:setElementToVar(v96["name"], v1:InitWithBottom())
+			else
+				v92:setElementToVar(v96["name"], v1:InitWithNil())
+			end
 		end
 	end
 	v88[ "outCell" ] = v92
@@ -184,8 +197,11 @@ v63[ "IfStatement" ] = function(v98, v99)
 		if v106 then
 			v99:addEdge(v101)
 		else
+			v99:addEdge(v102)
 		end
 	else
+		v99:addEdge(v101)
+		v99:addEdge(v102)
 	end
 end
 v63[ "GenericFor" ] = function(v107, v108)
@@ -214,8 +230,11 @@ v63[ "While" ] = function(v118, v119)
 		if v126 then
 			v119:addEdge(v121)
 		else
+			v119:addEdge(v122)
 		end
 	else
+		v119:addEdge(v121)
+		v119:addEdge(v122)
 	end
 end
 v63[ "Repeat" ] = function(v127, v128)
@@ -229,8 +248,11 @@ v63[ "Repeat" ] = function(v127, v128)
 		if v135 then
 			v128:addEdge(v131)
 		else
+			v128:addEdge(v130)
 		end
 	else
+		v128:addEdge(v131)
+		v128:addEdge(v130)
 	end
 end
 local v136

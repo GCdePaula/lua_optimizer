@@ -29,7 +29,7 @@ describe("self optimization", function()
 		"lattice/var.lua",
 	}
 	local src_strings = {}
-
+--[[
 	setup(function()
 		local program = loadfile(path_to_src .. "main.lua")
 
@@ -44,6 +44,7 @@ describe("self optimization", function()
 		end
 
 	end)
+	--]]
 
 	it("test self optimized optimizer", function()
 		local program = loadfile(target_dir .. "main.lua")
@@ -54,7 +55,8 @@ describe("self optimization", function()
 			program(input, 'temp.out')
 
 			local output = readFile('temp.out')
-			assert.equal(src_strings[name], output)
+			local expected = readFile(target_dir .. name)
+			assert.equal(output, expected)
 		end
 	end)
 

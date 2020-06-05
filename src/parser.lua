@@ -1,7 +1,10 @@
+package.path = package.path .. ";./libs/?.lua"
+package.cpath = "./libs/?/?.so;" .. package.cpath
+
 local lpeg = require "lpeg"
 
 local S, R, P, V = lpeg.S, lpeg.R, lpeg.P, lpeg.V
-local C, Cc, Cg, Cf, Ct, Cmt = lpeg.C, lpeg.Cc, lpeg.Cg, lpeg.Cf, lpeg.Ct, lpeg.Cmt
+local C, Cc, Cg, Cf, Ct, Cmt, Cs = lpeg.C, lpeg.Cc, lpeg.Cg, lpeg.Cf, lpeg.Ct, lpeg.Cmt, lpeg.Cs
 
 local function createLuaGrammar()
 	local asciiletter = R("az","AZ")
@@ -25,15 +28,29 @@ local function createLuaGrammar()
 	--
 
 	-- String patterns
-	local c_escape = S"abfnrtv\\\'\"" -- What comes after a '\'
+	local c_escape = (P"a" / "\a"
+           + P"b" / "\b"
+           + P"f" / "\f"
+           + P"n" / "\n"
+           + P"r" / "\r"
+           + P"t" / "\t"
+           + P"v" / "\v"
+           + P"n" / "\n"
+           + P"r" / "\n"
+
+           + P"\\" / "\\"
+           + P"\"" / "\""
+           + P"\'" / "\'")
+
+	-- S"abfnrtv\\\'\"" -- What comes after a '\'
 	local hex_escape = P'x' * hex_digit * hex_digit
 	local dec_escape = digit * digit^-2
 	local unicode_escape = P'u' * P'{' * hex_digit * hex_digit^-2 * P'}'
-	local escape = P"\\" * (c_escape + hex_escape + dec_escape + unicode_escape)
+	local escape = (P"\\" / "") * (c_escape + hex_escape + dec_escape + unicode_escape)
 	local char_escape = escape + P(1)
 
-	local short_string = P"'" * C((char_escape - P("'"))^0) * P("'")
-		+ P'"' * C((char_escape - P('"'))^0) * P('"')
+	local short_string = P"'" * Cs((char_escape - P("'"))^0) * P("'")
+		+ P'"' * Cs((char_escape - P('"'))^0) * P('"')
 
 	local long_string = Cmt(P"[" * C(P"="^0) * P"[" * P"\n"^-1,
 		function (subject, i, equals)
@@ -228,9 +245,13 @@ local function createLuaGrammar()
 		else
 			local elseIfStat = nestIf(...)
 			if elseIfStat then
-				local block = {tag = 'Block'}
-				block.statements = {head = elseIfStat, tail = {}}
-				stat.elseBody = block
+				if elseIfStat.tag == 'IfStatement' then
+					local block = {tag = 'Block'}
+					block.statements = {head = elseIfStat, tail = {}}
+					stat.elseBody = block
+				else
+					stat.elseBody = elseIfStat
+				end
 			else
 				stat.elseBody = false
 			end
@@ -386,7 +407,6 @@ local function createLuaGrammar()
 
 		-- Followed optionally by an else
 		* optional(Cg(Else * V"Block"), false) * End
-
 			/ nestIf
 
 	rules.VarList = Ct(V"Var" * (comma * V"Var")^0)

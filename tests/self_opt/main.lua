@@ -1,5 +1,5 @@
-_ENV["package"][ "path" ] = (_ENV["package"]["path"]..";./libs/?.lua")
-_ENV["package"][ "cpath" ] = ("./libs/?/?.so;".._ENV["package"]["cpath"])
+_ENV["package"][ "path" ] = (_ENV["package"]["path"] .. ";./libs/?.lua")
+_ENV["package"][ "cpath" ] = ("./libs/?/?.so;" .. _ENV["package"]["cpath"])
 _ENV[ "pretty" ] = _ENV["require"]("pl.pretty")
 local v1 = _ENV["require"]("parser")
 local v2 = _ENV["require"]("prepareAst")
@@ -32,6 +32,9 @@ if v13 then
 		v18:write(v17)
 		v18:close()
 	else
+		return v17
 	end
 else
+	_ENV["print"]("failed to open content")
+	return false
 end

@@ -63,7 +63,7 @@ setmetatable(stringOfExp, {__index = function(_)
 
 			local lhs = exp.lhs
 			local rhs = exp.rhs
-			str = dispatchStringOfExp(lhs, indent) .. tag .. dispatchStringOfExp(rhs, indent)
+			str = dispatchStringOfExp(lhs, indent) .. ' ' .. tag .. ' ' .. dispatchStringOfExp(rhs, indent)
 
 		elseif LuaOps.unops[tag] then
 			str = tag .. ' ' .. dispatchStringOfExp(exp.exp, indent)

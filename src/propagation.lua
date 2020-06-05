@@ -148,25 +148,21 @@ function propagateStat.IfStatement(node)
 
 	local testable, test = condElement:test()
 	if testable then
-		local outEdge
-		local body
 		if test then
 			-- Take only then branch
-			outEdge = node.thenEdge
-			body = node.thenBody
+			local body = node.thenBody
 
 			node.tag = 'Do'
 			node.body = body
-			dispatchPropagateStatFromEdge(outEdge)
+			dispatchPropagateStatFromEdge(node.thenEdge)
 		else
 			-- Take only else branch
-			outEdge = node.elseEdge
-			body = node.elseBody
+			local body = node.elseBody
 
 			if body then
 				node.tag = 'Do'
 				node.body = body
-				dispatchPropagateStatFromEdge(outEdge)
+				dispatchPropagateStatFromEdge(node.elseEdge)
 			else
 				node.tag = 'Nop'
 			end
@@ -203,8 +199,8 @@ function propagateStat.While(node)
 			return dispatchPropagateStatFromEdge(node.falseEdge)
 		end
 	else
-		dispatchPropagateStatFromEdge(node.falseEdge)
 		dispatchPropagateStatFromEdge(node.trueEdge)
+		dispatchPropagateStatFromEdge(node.falseEdge)
 	end
 end
 

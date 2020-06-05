@@ -46,65 +46,80 @@ v1[ "InitWithFunc" ] = function(v20, v21)
 	return v22
 end
 v1[ "getNumber" ] = function(v23)
-	if (v23["tag"]=="Number") then
+	if (v23["tag"] == "Number") then
 		return true, v23["constant"]
 	else
+		return false
 	end
 end
 v1[ "getBool" ] = function(v24)
-	if (v24["tag"]=="Bool") then
+	if (v24["tag"] == "Bool") then
 		return true, v24["constant"]
 	else
+		return false
 	end
 end
 v1[ "getString" ] = function(v25)
-	if (v25["tag"]=="String") then
+	if (v25["tag"] == "String") then
 		return true, v25["constant"]
 	else
+		return false
 	end
 end
 v1[ "getFunc" ] = function(v26)
-	if (v26["tag"]=="Func") then
+	if (v26["tag"] == "Func") then
 		return true, v26["number"]
 	else
+		return false
 	end
 end
 v1[ "getConstant" ] = function(v27)
-	if (v27["tag"]=="Nil") then
+	if (v27["tag"] == "Nil") then
 		return true, nil, "Nil"
 	else
-		if (v27["tag"]=="String") then
+		if (v27["tag"] == "String") then
 			return true, v27["constant"], "StringLiteral"
 		else
-			if (v27["tag"]=="Number") then
+			if (v27["tag"] == "Number") then
 				return true, v27["constant"], "NumberLiteral"
 			else
-				if (v27["tag"]=="Bool") then
+				if (v27["tag"] == "Bool") then
 					return true, v27["constant"], "BoolLiteral"
 				else
+					return false
 				end
 			end
 		end
 	end
 end
 v1[ "isTop" ] = function(v28)
-	return (v28["tag"]=="Top")
+	return (v28["tag"] == "Top")
 end
 v1[ "isBottom" ] = function(v29)
-	return (v29["tag"]=="Bot")
+	return (v29["tag"] == "Bot")
 end
 v1[ "isNil" ] = function(v30)
-	return (v30["tag"]=="Nil")
+	return (v30["tag"] == "Nil")
 end
 v1[ "test" ] = function(v31)
 	if v31:isBottom() then
 		return false
 	else
+		local v32, v33 = v31:getBool()
+		if v31:isNil() then
+			return true, false
+		else
+			if v32 then
+				return true, v33
+			else
+				return true, true
+			end
+		end
 	end
 end
 v1[ "compare" ] = function(v34, v35)
 	for v36, v37 in _ENV["pairs"](v34) do
-		if (v37~=v35[v36]) then
+		if (v37 ~= v35[v36]) then
 			return false
 		end
 	end
@@ -122,6 +137,7 @@ v1[ "meet" ] = function(v38, v39)
 				v38:assign(v1:InitWithBottom())
 				return true
 			else
+				return false
 			end
 		end
 	end

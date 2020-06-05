@@ -4,8 +4,10 @@ package.path = package.path
   ..";./libs/?/?.lua"
   ..";./libs/?/init.lua"
 
+  .. ";./self_opt/?.lua"
+
   -- Add src path and src libs path
-  ..";../src/?.lua"
+--  ..";../src/?.lua"
   ..";../src/libs/?.lua"
   ..";../src/libs/?/?.lua"
   ..";../src/libs/?/init.lua"

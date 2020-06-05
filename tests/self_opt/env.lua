@@ -7,11 +7,15 @@ v3[ "Init" ] = function(v4, v5, v6, v7)
 		v8[ "_previousEnv" ] = v5
 		v8[ "_sharedCounter" ] = v5["_sharedCounter"]
 		local v9 = v5["funcs"]
-		local v10 = v2:Init(((# v9)+1), v6, v7)
+		local v10 = v2:Init(((# v9) + 1), v6, v7)
 		_ENV["table"]["insert"](v9, v10)
 		v8[ "funcs" ] = v9
 		v8[ "currentFunc" ] = v10
 	else
+		v8[ "_previousEnv" ] = false
+		v8[ "_sharedCounter" ] = { value = 0 }
+		v8[ "funcs" ] = {  }
+		v8[ "currentFunc" ] = false
 	end
 	_ENV["setmetatable"](v8, v4)
 	v4[ "__index" ] = v4
@@ -34,8 +38,8 @@ v3[ "newLatticeCell" ] = function(v18)
 end
 v3[ "newLocalVar" ] = function(v19, v20)
 	local v21 = v19["_sharedCounter"]
-	v21[ "value" ] = (v21["value"]+1)
-	local v22 = ("v".._ENV["tostring"](v21["value"]))
+	v21[ "value" ] = (v21["value"] + 1)
+	local v22 = ("v" .. _ENV["tostring"](v21["value"]))
 	v19["_vars"][ v20 ] = v22
 	return v22
 end
@@ -47,6 +51,18 @@ v3[ "getVar" ] = function(v24, v25)
 	if v26 then
 		return v26
 	else
+		local v27 = v24["_previousEnv"]
+		if v27 then
+			local v28 = v27:getVar(v25)
+			v24["_vars"][ v25 ] = v28
+			return v28
+		else
+			if (v25 == "_ENV") then
+				return "_ENV"
+			else
+				return false
+			end
+		end
 	end
 end
 v3[ "getFuncs" ] = function(v29)

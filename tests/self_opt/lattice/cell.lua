@@ -18,6 +18,7 @@ v3[ "getVar" ] = function(v10, v11)
 		v12:setBottom()
 		return v12
 	else
+		return v12
 	end
 end
 v3[ "addVar" ] = function(v13, v14)
@@ -39,7 +40,7 @@ v3[ "updateWithInEdges" ] = function(v19, v20)
 	for v26, v27 in _ENV["pairs"](v25) do
 		for v28, v29 in _ENV["ipairs"](v21) do
 			local v30 = v29:getVar(v26)
-			v24 = (v27:meet(v30)orv24)
+			v24 = (v27:meet(v30) or v24)
 		end
 	end
 	return v24

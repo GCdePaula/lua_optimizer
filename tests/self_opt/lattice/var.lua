@@ -23,9 +23,10 @@ v2[ "meet" ] = function(v11, v12)
 	return v11["_element"]:meet(v12:getElement())
 end
 v2[ "equal" ] = function(v13, v14)
-	if ((v13:getName()==v14:getName())andv13:getElement():compare(v14:getElement())) then
+	if ((v13:getName() == v14:getName()) and v13:getElement():compare(v14:getElement())) then
 		return true
 	else
+		return false
 	end
 end
 v2[ "copy" ] = function(v15)

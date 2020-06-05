@@ -13,6 +13,9 @@ v9 = function(v10, v11)
 	if v11 then
 		v10[ "name" ] = v11
 	else
+		v10[ "tag" ] = "Indexation"
+		v10[ "index" ] = { tag = "StringLiteral", literal = v10["name"] }
+		v10[ "exp" ] = { tag = "VarExp", name = "_ENV" }
 	end
 end
 local v12
@@ -20,6 +23,9 @@ v12 = function(v13, v14)
 	if v14 then
 		v13[ "name" ] = v14
 	else
+		v13[ "tag" ] = "IndexationExp"
+		v13[ "index" ] = { tag = "StringLiteral", literal = v13["name"] }
+		v13[ "exp" ] = { tag = "VarExp", name = "_ENV" }
 	end
 end
 local v15
@@ -66,15 +72,16 @@ end
 _ENV["setmetatable"](v28, { __index = function(v45)
 	return function(v46, v47)
 		local v48 = v46["tag"]
-		if ((v1["binops"][v48]orv1["cmpops"][v48])orv1["logbinops"][v48]) then
+		if ((v1["binops"][v48] or v1["cmpops"][v48]) or v1["logbinops"][v48]) then
 			v35(v46["lhs"], v47)
 			v35(v46["rhs"], v47)
 		else
 			if v1["unops"][v48] then
 				v35(v46["exp"], v47)
 			else
-				if ((((v48=="StringLiteral")or(v48=="NumberLiteral"))or(v48=="BoolLiteral"))or(v48=="Nil")) then
+				if ((((v48 == "StringLiteral") or (v48 == "NumberLiteral")) or (v48 == "BoolLiteral")) or (v48 == "Nil")) then
 				else
+					_ENV["error"](("Tag for prepare exp not implemented " .. v48))
 				end
 			end
 		end
@@ -105,7 +112,7 @@ v28[ "TableConstructor" ] = function(v64, v65)
 	local v66 = v64["fields"]
 	for v67, v68 in _ENV["ipairs"](v66) do
 		v35(v68["value"], v65)
-		if (v68["tag"]=="ExpAssign") then
+		if (v68["tag"] == "ExpAssign") then
 			v35(v68["exp"], v65)
 		end
 	end
@@ -116,10 +123,11 @@ v28[ "AnonymousFunction" ] = function(v69, v70)
 	local v73 = v20()
 	local v74 = v69["params"]
 	for v75, v76 in _ENV["ipairs"](v74) do
-		if (v76["tag"]=="LocalVar") then
+		if (v76["tag"] == "LocalVar") then
 			local v77 = v72:newLocalVar(v76["name"])
 			v74[v75][ "name" ] = v77
 		else
+			v70:addVararg()
 		end
 	end
 	v69[ "funcIndex" ] = v72:getCurrentFunc():getIndex()
@@ -208,6 +216,7 @@ v29[ "IfStatement" ] = function(v123, v124, v125, v126)
 		local v133 = v30(v129, { v131 }, v125, v126)
 		v4(v132, v133)
 	else
+		_ENV["table"]["insert"](v132, v131)
 	end
 	return v132
 end
@@ -233,10 +242,14 @@ v29[ "Assign" ] = function(v143, v144, v145)
 	local v146 = v2:InitWithFromNode(v143)
 	v143[ "outEdge" ] = v146
 	for v147, v148 in _ENV["ipairs"](v143["vars"]) do
-		if (v148["tag"]=="Var") then
+		if (v148["tag"] == "Var") then
 			local v149 = v145:getVar(v148["name"])
 			v9(v148, v149)
 		else
+			local v150 = v148["index"]
+			local v151 = v148["exp"]
+			v35(v150, v145)
+			v35(v151, v145)
 		end
 	end
 	for v152, v153 in _ENV["ipairs"](v143["exps"]) do

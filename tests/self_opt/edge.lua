@@ -23,7 +23,7 @@ v2[ "getFromNode" ] = function(v11)
 	return v11["_fromNode"]
 end
 v2[ "getToNode" ] = function(v12)
-	return (v12["_toNode"]orfalse)
+	return (v12["_toNode"] or false)
 end
 v2[ "setToNode" ] = function(v13, v14)
 	v13[ "_toNode" ] = v14

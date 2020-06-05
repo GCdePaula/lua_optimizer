@@ -7,18 +7,20 @@ v3 = function(v4)
 		v4[ "tag" ] = v7
 		v4[ "literal" ] = v6
 	else
+		v2[v4["tag"]](v4)
 	end
 end
 _ENV["setmetatable"](v2, { __index = function(v8)
 	return function(v9)
 		local v10 = v9["tag"]
-		if (v1["binops"][v10]orv1["cmpops"][v10]) then
+		if (v1["binops"][v10] or v1["cmpops"][v10]) then
 			v3(v9["lhs"])
 			v3(v9["rhs"])
 		else
 			if v1["unops"][v10] then
 				v3(v9["exp"])
 			else
+				_ENV["error"](("Tag for prepare exp not implemented " .. v10))
 			end
 		end
 	end
@@ -35,6 +37,7 @@ v2[ "and" ] = function(v11)
 			return
 		end
 	else
+		v3(v13)
 	end
 end
 v2[ "or" ] = function(v18)
@@ -49,6 +52,7 @@ v2[ "or" ] = function(v18)
 			return
 		end
 	else
+		v3(v20)
 	end
 end
 v2[ "VarExp" ] = function()
@@ -73,7 +77,7 @@ v2[ "TableConstructor" ] = function(v32)
 	local v33 = v32["fields"]
 	for v34, v35 in _ENV["ipairs"](v33) do
 		v3(v35["value"])
-		if (v35["tag"]=="ExpAssign") then
+		if (v35["tag"] == "ExpAssign") then
 			v3(v35["exp"])
 		end
 	end
@@ -87,7 +91,7 @@ local v37
 v37 = function(v38)
 	if v38:isExecutable() then
 		local v39 = v38:getToNode()
-		if (v39and(not v39["visited"])) then
+		if (v39 and (not v39["visited"])) then
 			v39[ "visited" ] = true
 			return v36[v39["tag"]](v39)
 		end
@@ -113,17 +117,24 @@ v36[ "IfStatement" ] = function(v47)
 	local v49 = v48["element"]
 	local v50, v51 = v49:test()
 	if v50 then
-		local v52
-		local v53
 		if v51 then
-			v52 = v47["thenEdge"]
-			v53 = v47["thenBody"]
+			local v52 = v47["thenBody"]
+			v47[ "tag" ] = "Do"
+			v47[ "body" ] = v52
+			v37(v47["thenEdge"])
 		else
+			local v53 = v47["elseBody"]
+			if v53 then
+				v47[ "tag" ] = "Do"
+				v47[ "body" ] = v53
+				v37(v47["elseEdge"])
+			else
+				v47[ "tag" ] = "Nop"
+			end
 		end
-		v47[ "tag" ] = "Do"
-		v47[ "body" ] = v53
-		v37(v52)
 	else
+		v37(v47["thenEdge"])
+		v37(v47["elseEdge"])
 	end
 end
 v36[ "GenericFor" ] = function(v54)
@@ -143,8 +154,12 @@ v36[ "While" ] = function(v58)
 		if v62 then
 			return v37(v58["trueEdge"])
 		else
+			v58[ "tag" ] = "Nop"
+			return v37(v58["falseEdge"])
 		end
 	else
+		v37(v58["trueEdge"])
+		v37(v58["falseEdge"])
 	end
 end
 v36[ "Repeat" ] = function(v63)
@@ -159,6 +174,8 @@ v36[ "Repeat" ] = function(v63)
 		else
 		end
 	else
+		v37(v63["continueEdge"])
+		v37(v63["repeatEdge"])
 	end
 end
 v36[ "FunctionCallStat" ] = function(v68)
