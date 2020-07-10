@@ -1,0 +1,612 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\author{}
+\date{}
+
+\begin{document}
+
+-- Remove optimistic assumption. -- Remove the ``trying to prove it is
+correct''
+
+\hypertarget{about}{%
+\section{About}\label{about}}
+
+The lua\_optimizer is a program that performs optimizations on Lua code.
+We use a technique called abstract interpretation to accomplish two
+optimizations: constant propagation and unreachable code elimination.
+The motivation for this work is that these types of optimizations cannot
+be done by a single-pass compiler. It is based on the Conditional
+Constant Propagation algorithm of Wegman and Zadeck {[}1{]}.
+
+\hypertarget{overview}{%
+\subsection{Overview}\label{overview}}
+
+The first step of our analysis is finding which variables are constant
+at each point in the program, and finding code that is unreachable. At
+every statement, we try to determine the value of all variables
+immediately before and after each statement's execution. To that end, we
+use a technique called abstract interpretation.
+
+Let's look at a few examples. We assume all variables start with a
+default value of \texttt{nil}.
+
+\begin{verbatim}
+x = 1
+y = x
+print(x, y)
+\end{verbatim}
+
+-- We can determine that on the second assignment x must be 1 -- Add
+print y -- y is constant after the second assignment.
+
+We know that immediately before the first assignment, \texttt{x} and
+\texttt{y} have the value \texttt{nil}. After the first assignment we
+determine \texttt{x} is \texttt{1}, because we assign the constant
+\texttt{1} to \texttt{x}. After the second assignment, we can also
+determine that \texttt{y} has value \texttt{1}, because we are assigning
+the constant \texttt{x} to \texttt{y}. Therefore, right before the
+\texttt{print} statement, we have both variables with value \texttt{1}.
+If we execute this program, it will print the value \texttt{1} twice.
+
+Let's add conditions to our program.
+
+\begin{verbatim}
+x = 1
+if x > 0 then
+  x = 2
+  y = 3
+else
+  y = 0
+end
+print(x, y)
+\end{verbatim}
+
+-- Knowing that \texttt{x} is a constant with the value \texttt{1} after
+the first line. -- Remove the use of the word constant to a knonw value.
+-- That is, x always value 1 after line one. -- In the analysis
+
+-- the unreacheable path sentence is swapped.
+
+Knowing that \texttt{x} has a known value of \texttt{1} after the first
+line, we can determine which path our program will take. We know the
+\texttt{else} branch is unreachable, and that the program will always
+take the \texttt{then} branch. After the \texttt{if-then-else}
+statement, we can determine that \texttt{x} and \texttt{y} have the
+known values of \texttt{2} and \texttt{3}, respectively. If we execute
+this program, it will print the values \texttt{2} and \texttt{3}. Note
+that, although the value of \texttt{x} changes throughout the execution,
+we know its value at each point of the program.
+
+Finally, let's look at loops.
+
+\begin{verbatim}
+x = 0
+y = 0
+repeat
+  x = 1
+  y = y + 1
+  print(x, y)
+until condition
+\end{verbatim}
+
+Here, at the \texttt{print} statement inside the \texttt{repeat\ until}
+body, \texttt{x} is constant and \texttt{y} is not constant. First,
+let's assume that we know nothing about \texttt{condition}, so there's
+no way to find out how many times the statements \texttt{x\ =\ 1} and
+\texttt{y\ =\ y\ +\ 1} will be executed. Right after the first two
+lines, we determine that \texttt{x} and \texttt{y} both have value
+\texttt{0}. When we enter the loop's body, things get more complex.
+
+The issue is that there are two ways of getting inside the loop. One
+coming from outside (that is, from the preceding assignment node), and
+another from the bottom of the loop (the back edge). And in the real
+execution the back edge might be traversed multiple times. However we
+can still do some high level reasoning about it. Let's start with
+\texttt{x}.
+
+On the first iteration the program assigns \texttt{1} to \texttt{x}. On
+subsequent iterations, the program assigns the same value again.
+Therefore the value of \texttt{x} at the \texttt{print} statement is
+always the same. Note that we could add another assignment of the same
+kind, such as \texttt{x\ =\ 3} somewhere in the loop before the
+\texttt{print}. It still wouldn't change the fact that \texttt{x}---at
+the \texttt{print} statement---is known, because at that point there's
+only one possible value for \texttt{x}.
+
+When analysing \texttt{y}, on the other hand, we don't have this
+guarantee. On the first iteration the program assigns \texttt{1} to
+\texttt{y}, on the second iteration it assigns \texttt{2} to \texttt{y},
+and so forth. At the \texttt{print} statement, there are multiple
+possible values \texttt{y} can have. There are a few subtleties in this
+example, however. We need to revise a few concepts to better understand
+what's going on.
+
+\hypertarget{lattice}{%
+\subsection{Lattice}\label{lattice}}
+
+A lattice is a partially ordered set in which every two elements have a
+unique supremum (also called a least upper bound or join) and a unique
+infimum (also called a greatest lower bound or meet) {[}2{]}. We use a
+simple flat lattice in our analysis. There are three different levels of
+elements: the highest element is Top, the lowest is Bottom, and the
+elements in the middle are all values (e.g.~all numbers, all strings,
+booleans, nil). Note that there is an infinite number of elements in the
+middle level. However, the lattice still has a bounded depth as every
+element is at most two ``steps'' away from Bottom.
+
+-- Remove the capital Constant. Instead, just use the values.
+
+The abstract interpretation algorithm associates a lattice element to
+every variable at each point in the program. Every element has a
+different meaning:
+
+\begin{itemize}
+\tightlist
+\item
+  Top means the variable is constant, yet to be determined.
+\item
+  At the middle, the elements each represent a different value. That is,
+  a variable with an element of this kind is a constant with a known
+  value.
+\item
+  Bottom means the variable is not constant (or that it cannot be
+  guaranteed to be constant).
+\end{itemize}
+
+The most relevant operation between elements for our analysis is the
+meet operation. It is associative and commutative, following three
+rules:
+
+-- Write the equations instead meet between anything and Top is
+anything, meet between anything and Bottom is Bottom, and meet between
+two Constants is either Bottom (if they are different) or their common
+value (if they are equal).
+
+\[
+any \sqcap \top = any
+\] \[
+any \sqcap \bot = \bot
+\] \[
+c_{i} \sqcap c_{j} = c_{i},\,\text{if } i = j
+\] \[
+c_{i} \sqcap c_{j} = \bot,\,\text{if } i \ne j
+\]
+
+\[
+0, \text{if}\ a=1 \\
+1, \text{otherwise}
+\]
+
+\hypertarget{the-optimistic-assumption}{%
+\subsection{The Optimistic Assumption}\label{the-optimistic-assumption}}
+
+Our analysis is done under the optimistic assumption. The abstract
+interpretation optimistically assumes every variable is constant at
+point in the program, and falls back into a more pessimistic truth if it
+cannot prove the initial assumption was correct. Let's go back to our
+last example.
+
+\begin{verbatim}
+x = 0
+y = 0
+repeat
+  x = 1
+  y = y + 1
+  print(x, y)
+until condition
+\end{verbatim}
+
+After symbolically executing lines one and two, we know that \texttt{x}
+and \texttt{y} are constants with value \texttt{0}. However, at first,
+we cannot know that \texttt{x} and \texttt{y} continue to be constant
+inside the loop, because the loop assigns to them. In comes the
+optimistic assumption. We assume \texttt{x} and \texttt{y} are
+constants, and try to prove their correctness.
+
+Let's start with \texttt{x}. Inside the loop, the first line assigns to
+\texttt{x} the value of \texttt{1}. So after that line, \texttt{x} is a
+constant with value \texttt{1}. When we reach the bottom, as
+\texttt{condition} is not known, we need to consider the possibility of
+repeating the loop's body. Back at the loop's top we reach a conflict.
+The value of \texttt{x} can be \texttt{0} (if it came from outside the
+loop) or \texttt{1} (if it came from the back edge). The meet operator
+between Constant \texttt{0} and Constant \texttt{1} is Bottom. As such,
+we come to the conclusion our assumption was incorrect: \texttt{x} is
+not constant at the loop's top. If we were to add \texttt{print} there,
+the value of \texttt{x} would depend on which iteration the loop is at.
+However, as soon as we execute the first assignment again, \texttt{x}
+goes back to being a constant. So, at the bottom, our assumption was
+correct: \texttt{x} is constant at the print statement.
+
+Now, let's analyse \texttt{y}. Inside, the first line assigns to
+\texttt{y} the value of \texttt{y} (which, under our assumption, is
+\texttt{0}) plus \texttt{1}. So after that line, \texttt{y} is a
+constant with value \texttt{1}. When we reach the bottom, as
+\texttt{condition} is not known, we need to consider the possibility of
+repeating the loop's body. Back at the top we reach a conflict. The
+value of \texttt{y} can be \texttt{0} (if it came from outside the loop)
+or \texttt{1} (if it came from the back edge). The meet operator between
+Constant \texttt{0} and Constant \texttt{1} is Bottom. As such, we come
+to the conclusion our assumption was incorrect: \texttt{y} is not
+constant at the loop's top. Differently from \texttt{x}, however, when
+we execute the assignment again, \texttt{y} remains not constant,
+because we are assigning to it a value that is, itself, not constant.
+So, at the bottom, our assumption was also incorrect: \texttt{y} is not
+constant at the print statement.
+
+Let's look into a more interesting example, from Click et al {[}3{]}:
+
+\begin{verbatim}
+x = 1
+repeat
+  x = 2 - x
+until condition
+\end{verbatim}
+
+After symbolically executing the first line, \texttt{x} has the lattice
+element Constant \texttt{1}. When we enter the loop's body, we assume
+\texttt{x} remains constant and try to prove its correctness. After
+executing the assignment statement, under our assumption, \texttt{x} is
+a constant with value \texttt{1}, because \texttt{2\ -\ 1} is
+\texttt{1}. Again, as we don't know the value of \texttt{condition}, we
+have to consider the loop will execute multiple times. Back at the top,
+\texttt{x} has two possible elements associated with it: the one coming
+from outside, and another from the back edge. We perform the meet
+operator between the two. That is, Constant \texttt{1} meet Constant
+\texttt{1}. Differently from the previous example, the meet results in
+Constant \texttt{1}, as the meet between two Constants is their common
+value if they are the same. So we proved the correctness of our
+assumption: \texttt{x} was indeed constant throughout the loop.
+
+When combining constant propagation and unreachable code elimination
+there's the problem of phase-ordering. This occurs because the two
+optimizations interact, making use of the optimistic assumption within
+themselves, but not between themselves. The method uses these two
+analyses making both assumptions at the same time, and combining them
+optimistically. Facts that simultaneously require both optimistic
+assumptions are found. It is stronger than repeating separate analysis
+any number of times {[}3{]}.
+
+Let's look at a more formal description of our algorithm.
+
+\hypertarget{fixed-point-and-complex-lattices}{%
+\subsection{Fixed Point and Complex
+Lattices}\label{fixed-point-and-complex-lattices}}
+
+-- Say we don't start in a fixed point. WE start with the best possible
+scenario and try to lower.
+
+In abstract terms, our analysis is looking for the greatest fixed point.
+We begin by assuming every variable is an unknown constant (Top), and
+try to prove that is true. While trying to prove the correctness of our
+assumption, we may need to fall back into a more pessimistic truth,
+lowering lattice elements until we reach a stable configuration. That
+configuration is a fixed point.
+
+Note that lowering every variable to Bottom is a stable configuration.
+However, it is not a very useful fixed point. We want to find the
+greatest fixed point, the configuration in which we find the highest
+number of constant variables, because it gives us more information. That
+information is then used for constant propagation and unreachable code
+elimination. More on that later.
+
+We could also use a more complex lattice, where types are also added
+(e.g.~the meet of two different numbers is not Bottom, but an element
+that represents the number type), and ``Truthy'' and ``Falsy'' elements
+(e.g.~the meet between Numbers, Strings and True is ``Truthy'', the meet
+between Nil and False is ``Falsy''). Though these changes would increase
+the depth of our lattice, it would still remain bounded, and might
+provide more information for our optimizations.
+
+\hypertarget{abstract-interpretation}{%
+\subsection{Abstract Interpretation}\label{abstract-interpretation}}
+
+The abstract interpretation operates on the program's control flow
+graph. The nodes represent statements, and directed edges represent the
+control flow. On top of that, each node contains a pair of cells: an
+``in cell'' and an ``out cell''. A cell is a structure that contains the
+program's state at that point of execution. It is essentially a map of
+all variables in scope, associating each variable to a lattice element.
+
+The abstract interpretation works by scheduling edges and executing the
+node those edges point to. We use a simple iterative worklist technique,
+containing CFG edges that need be processed. We start with an empty
+worklist, marking all edges as ``not executable'', and setting all
+variables at all cells to Top. This is our optimistic assumption.
+
+The first step of the abstract interpretation is marking the start edge
+as executable, and adding it to the previously empty worklist. Then we
+enter a loop: while the worklist is not empty, we remove an edge from
+the list and execute the node it is pointing to. During the execution of
+a node, we schedule new edges to be processed, marking them as
+executable in the process.
+
+Executing a node involves a few steps:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Calculate the new ``in cell'' from all executable incident edges. The
+  algorithm gets all preceding nodes whose edges are traversable, and
+  performs the meet operation between their ``out cells''. In other
+  words, for all executable in edges, we get the ``out cell'' of the
+  node they're from, and for each variable of those cells we perform the
+  meet operation between their lattice elements.
+\item
+  If the node hasn't been executed before, mark the node as executed and
+  skip to step 3.
+
+  Otherwise, compare the new ``in cell'' with the previous one. This is
+  the stop condition of our algorithm. If they're equal, we stop this
+  node's execution, because whatever the node is about to execute will
+  yield the same results as the previous iteration. In other words, for
+  the same pair in-state/execution, the out-state will be the same.
+  Therefore there isn't any state changes to propagate, they've already
+  been propagated before.
+\end{enumerate}
+
+-- This is ``recursive''
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{2}
+\item
+  Execute the node using the new ``in cell'' as its state, update the
+  ``out cell'' with the changes from the execution, and schedule out
+  edges. Scheduled edges are marked as executable. This step depends on
+  the node type:
+
+  \begin{itemize}
+  \item
+    Assignment nodes update a variable's lattice element and schedule
+    its single out edge.
+  \item
+    Local assignments nodes add a variable to the scope, assign it a
+    value (possibly nil if there're no expressions), and schedule its
+    single out edge.
+  \item
+    If, while, and repeat until nodes evaluate their condition, and
+    conditionally schedule its out edges. If the condition is a
+    constant, only one branch needs to be scheduled. If it is Bottom,
+    both must be scheduled, as its condition's value is unknown.
+  \item
+    Generic and numeric for nodes add variables to the inner block's
+    scope, setting their lattice element to Bottom. We then schedules
+    both edges.
+  \item
+    Function call statement nodes are not evaluated. Their single out
+    edge is scheduled normally.
+  \item
+    Return statements are not evaluated. They do not schedule edges.
+  \end{itemize}
+\end{enumerate}
+
+When there are no more edges in the work list, the abstract
+interpretation is done and the fixed point has been found.
+
+\hypertarget{edges-vs-nodes}{%
+\subsection{Edges vs Nodes}\label{edges-vs-nodes}}
+
+In our method we schedule edges, rather than nodes. A different approach
+could, instead, associate the executable flag to nodes. However, this is
+not optimal, as we can find more constants scheduling edges. The reason
+is that two nodes may be executable and there may be an edge between
+them, but that edge may not be traversable. This would result in an
+unnecessary meet operation that could potentially set bottom to a
+constant variable. Let's look at a modified example from Wegman and
+Zadeck {[}1{]}:
+
+\begin{verbatim}
+i = 1
+while true do
+  i = i + 1
+  if i == 10 then
+    break
+  end
+end
+print(i)
+\end{verbatim}
+
+Here, the edge exiting the \texttt{while} node is not traversable, as
+its condition is always true. The only way to reach the \texttt{print}
+statement is through the break inside the loop.
+
+If we schedule edges, at the \texttt{print} statement the only
+executable in edge is the one coming from inside the \texttt{if}
+statement. The meet between all its traversable in edges (in this case
+there's only one) will yield that \texttt{i} is a constant with value
+\texttt{10}, because that's the only possible value for \texttt{x}
+inside the \texttt{if}.
+
+However, if we associate the executable flag to the nodes, the meet
+operation between all previous executable nodes would include the
+\texttt{while} body. We would do the meet between Bottom (which is the
+lattice element associated with \texttt{x} at the loop's end) and
+Constant \texttt{10} (which is the lattice element associated with
+\texttt{x} at the end of the \texttt{if} node). So we would conclude
+that \texttt{i} is not constant.
+
+\hypertarget{constant-propagation-and-unreachable-code-elimination}{%
+\subsection{Constant Propagation and Unreachable Code
+Elimination}\label{constant-propagation-and-unreachable-code-elimination}}
+
+Now that the fixed point has been found we can perform constant
+propagation, constant folding and unreachable code elimination. At every
+node, we have the lattice element associated with each variable at that
+scope. With that information, we can substitute all occurrences of
+constant variables with their respective values.
+
+The algorithm is essentially a depth first search in the program's CFG.
+However, only edges marked as executable are traversed. At every node,
+all expressions are inspected, constant variables are substituted by
+their value and constants are folded as needed. Code that is unreachable
+is not processed.
+
+Constant conditions are also simplified. Whenever we find an \texttt{if}
+statement with a constant condition, we eliminate the conditional
+branching.
+
+\begin{verbatim}
+if constant then
+  -- then body
+else
+  -- else body
+end
+\end{verbatim}
+
+If \texttt{constant} evaluates to true, then the entire statement is
+transformed into a block of code without conditional branching. We wrap
+the body in a \texttt{do} statement to preserve block scoping.
+
+\begin{verbatim}
+do
+  -- then body
+end
+\end{verbatim}
+
+On \texttt{while} statements, if the condition evaluates to false, we
+eliminate the loop entirely. Otherwise, if we can guarantee there are no
+executable \texttt{break} and \texttt{goto} statements inside the loop,
+we eliminate everything that comes after it.
+
+On \texttt{repeat\ until} statements, if the condition evaluates to
+true, we transform it in a single \texttt{do} statement. Otherwise, if
+we can guarantee there are no executable \texttt{break} and
+\texttt{goto} statements inside the loop, we eliminate everything that
+comes after it.
+
+\hypertarget{preparing-the-abstract-syntax-tree}{%
+\subsection{Preparing the Abstract Syntax
+Tree}\label{preparing-the-abstract-syntax-tree}}
+
+Our program starts by parsing Lua code using the LPeg library,
+generating an abstract syntax tree. But for our analysis, we require a
+control flow graph of the program, along with information about the
+scope and upvalues. So we execute a preparation step before performing
+the abstract interpretation, doing the following:
+
+\begin{itemize}
+\item
+  Build the CFG on top of the AST, without destroying the latter. That
+  is, the statement nodes of the AST become the nodes of the CFG, and we
+  add edges between those nodes without losing the original AST
+  structure.
+\item
+  Create the ``in cells'' and ``out cells'' for every node, initializing
+  all their variables to Top. Note that the cells only contain the
+  variables in scope at that point of the program, so we also have to
+  build the scope on this preparation step.
+\item
+  Find upvalues, setting their lattice element to bottom at every cell
+  from the point they become an upvalue onwards. We need to do this in
+  case we call some function that changes the value of those variables
+  under our noses. We don't need to set them to Bottom at every cell, it
+  is enough to do so from the point they become an upvalue onwards.
+
+  A more sophisticated analysis could keep their element as Top, and use
+  a more complex lattice to get more refined information about values
+  and types. Then, in the abstract interpretation, only set their values
+  to Bottom when an unknown function is called or when an unknown value
+  escapes.
+\item
+  Rename each local variable to a unique name, and change all global
+  variables to an \texttt{\_ENV} table lookup (global \texttt{x} becomes
+  \texttt{\_ENV{[}"x"{]}}, following Lua's global variable semantics).
+  This step isn't exactly necessary, but for future work with function
+  inlining this will be needed to preserve scope rules in multiple
+  assignments and eliminate possible name collisions.
+\item
+  Associate all closures with an integer, so we can represent a function
+  element as an index.
+\end{itemize}
+
+This is done with a single iteration over the AST, recursively executing
+it for closures.
+
+\hypertarget{putting-it-all-together}{%
+\subsection{Putting It All Together}\label{putting-it-all-together}}
+
+Our implementation has five main steps.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Parse input Lua code using the LPeg library, generating an abstract
+  syntax tree.
+\item
+  Prepare the AST, building the control flow graph on top of it, as
+  described previously.
+\item
+  Abstract interpretation of the program as described previously. After
+  this is done, all variables have an associated lattice element.
+\item
+  Using the found constants, perform constant propagation, constant
+  folding and unreachable code elimination as described previously. This
+  step is a depth first search on the CFG, and modifies the AST itself.
+  Remember, from the prepare step, that AST and CFG nodes are shared.
+\item
+  From the modified AST, generate Lua code. Unlike the previous steps,
+  this one iterates over the AST structure, rather than the CFG. Only
+  nodes marked as visited from the previous DFS are considered.
+\end{enumerate}
+
+Once this is done, we output the optimized Lua code.
+
+\hypertarget{references}{%
+\subsection{References}\label{references}}
+
+{[}1{]} Mark N. Wegman and F. Kenneth Zadeck. 1991. Constant propagation
+with conditional branches. ACM Trans. Program. Lang. Syst. 13, 2 (April
+1991), 181--210. DOI:https://doi.org/10.1145/103135.103136
+
+{[}2{]} https://en.wikipedia.org/wiki/Lattice\_(order)
+
+{[}3{]} Click, Cliff \& Cooper, Keith. (2000). Combining Analyses,
+Combining Optimizations. ACM Transactions on Programming Languages and
+Systems. 17. 10.1145/201059.201061.
+
+\end{document}
