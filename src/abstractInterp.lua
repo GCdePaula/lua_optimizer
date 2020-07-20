@@ -272,6 +272,24 @@ function processStat.GenericFor(node, workList)
 	workList:addEdge(continueEdge)
 end
 
+function processStat.NumericFor(node, workList)
+	local var, init, limit, step = node.var, node.init, node.limit, node.step
+	local loopEdge, continueEdge = node.loopEdge, node.continueEdge
+	local cell = node.inCell:copy()
+
+	dispatchProcessExp(init, cell)
+	dispatchProcessExp(limit, cell)
+	if step then dispatchProcessExp(step, cell) end
+
+	cell:addVar(var.name)
+	cell:setElementToVar(var.name, Element:InitWithBottom())
+
+	node.outCell = cell
+
+	workList:addEdge(loopEdge)
+	workList:addEdge(continueEdge)
+end
+
 function processStat.While(node, workList)
 	local condition = node.condition
 	local trueEdge, falseEdge = node.trueEdge, node.falseEdge

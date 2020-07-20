@@ -212,6 +212,41 @@ function prepareStatement.GenericFor(node, inEdges, env, control)
 	return breakEdges
 end
 
+function prepareStatement.NumericFor(node, inEdges, env, control)
+	local var, init, limit, step, body = node.var, node.init, node.limit, node.step, node.body
+
+	local oldScope = env:startBlock()
+	control:startLoop()
+
+	dispatchPrepareExp(init, env)
+	dispatchPrepareExp(limit, env)
+	if step then dispatchPrepareExp(limit, env) end
+
+	node.inCell = env:newLatticeCell()
+
+	local newName = env:newLocalVar(var.name)
+	renameVar(var, newName)
+
+	node.outCell = env:newLatticeCell()
+
+	-- Create outEdges
+	local loopEdge, continueEdge = Edge:InitWithFromNode(node), Edge:InitWithFromNode(node)
+	node.loopEdge = loopEdge
+	node.continueEdge = continueEdge
+
+	-- Set edges
+	local bodyOutEdges = prepareStatementList(body.statements, {loopEdge}, env, control)
+	concatArrays(inEdges, bodyOutEdges)
+	setToEdges(inEdges, node)
+	node.inEdges = inEdges
+
+	local breakEdges = control:endLoop()
+	table.insert(breakEdges, continueEdge)
+
+	env:endBlock(oldScope)
+	return breakEdges
+end
+
 function prepareStatement.While(node, inEdges, env, control)
 	local condition, body = node.condition, node.body
 

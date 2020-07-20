@@ -262,6 +262,30 @@ function stringOfStat.GenericFor(node, buffer, indent)
 	table.insert(buffer, indent .. 'end')
 end
 
+function stringOfStat.NumericFor(node, buffer, indent)
+	local var, init, limit, step, body = node.var, node.init, node.limit, node.step, node.body
+
+	local initStr = dispatchStringOfExp(init, indent)
+	local limitStr = dispatchStringOfExp(limit, indent)
+	local stepStr = step and dispatchStringOfExp(step, indent)
+
+	local expsStr
+	if step then
+		expsStr = initStr .. ',' .. limitStr .. ',' .. stepStr
+	else
+		expsStr = initStr .. ',' .. limitStr
+	end
+
+
+
+	table.insert(buffer, indent ..
+		'for ' .. var.name .. "=" .. expsStr .. ' do')
+
+	stringOfStatList(body.statements, buffer, '\t' .. indent)
+
+	table.insert(buffer, indent .. 'end')
+end
+
 function stringOfStat.While(node, buffer, indent)
 	local condition, body = node.condition, node.body
 

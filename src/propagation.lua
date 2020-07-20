@@ -184,6 +184,17 @@ function propagateStat.GenericFor(node)
 	dispatchPropagateStatFromEdge(node.continueEdge)
 end
 
+function propagateStat.NumericFor(node)
+	local init, limit, step = node.init, node.limit, node.step
+
+	dispatchPropagateExp(init)
+	dispatchPropagateExp(limit)
+	if step then dispatchPropagateExp(step) end
+
+	dispatchPropagateStatFromEdge(node.loopEdge)
+	dispatchPropagateStatFromEdge(node.continueEdge)
+end
+
 function propagateStat.While(node)
 	local condition = node.condition
 	dispatchPropagateExp(condition)

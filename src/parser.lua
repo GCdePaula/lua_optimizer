@@ -339,7 +339,7 @@ local function createLuaGrammar()
 		-- Numeric for
 		+ tagWrap("NumericFor",
 			For
-			* tagP('var', V"Name")
+			* tagP('var', V"WrappedName")
 			* equal * tagP('init', V"Exp")
 			* comma * tagP('limit', V"Exp")
 			* tagP('step', optional(comma * V"Exp", false))
