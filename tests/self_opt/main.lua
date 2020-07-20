@@ -26,7 +26,6 @@ if v13 then
 	v3(v15, v16)
 	v4(v15, v16)
 	local v17 = v5(v14)
-	_ENV["print"](v17)
 	if v8 then
 		local v18 = _ENV["io"]["open"](v8, "w+")
 		v18:write(v17)

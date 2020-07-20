@@ -35,7 +35,6 @@ if content then
 	findFixedPoint(startEdge, closures)
 	propagate(startEdge, closures)
 	local program = toLua(ast)
-	print(program)
   --]]
 
 	if target then

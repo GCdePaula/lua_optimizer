@@ -1,5 +1,14 @@
-require 'paths'
-require 'busted.runner'()
+package.path = package.path
+  ..";./self_opt/?.lua"
+  ..";./self_opt/libs/?.lua"
+  ..";./self_opt/libs/?/?.lua"
+  ..";./self_opt/libs/?/init.lua"
+
+package.cpath = package.cpath
+  .."./self_opt/libs/?.so;"
+  .."./self_opt/libs/?/?.so;"
+
+
 
 local function readFile(path)
 	local file = io.open(path, "rb")
@@ -9,7 +18,6 @@ local function readFile(path)
 	return content
 end
 
-describe("self optimization", function()
 	local path_to_src = "../src/"
 	local target_dir = "./self_opt/"
 	local paths = {
@@ -28,37 +36,16 @@ describe("self optimization", function()
 		"lattice/ops.lua",
 		"lattice/var.lua",
 	}
-	local src_strings = {}
---[[
-	setup(function()
-		local program = loadfile(path_to_src .. "main.lua")
 
-		for _,name in ipairs(paths) do
-			local input = path_to_src .. name
-			local output = target_dir .. name
+	local program = loadfile(target_dir .. "main.lua")
 
-			program(input, output)
+	for _,name in ipairs(paths) do
+		local input = path_to_src .. name
+		local output = "temp.out"
+		program(input, output)
 
-			local output_str = readFile(output)
-			src_strings[name] = output_str
-		end
-
-	end)
-	--]]
-
-	it("test self optimized optimizer", function()
-		local program = loadfile(target_dir .. "main.lua")
-
-		for _,name in ipairs(paths) do
-			local input = path_to_src .. name
-
-			program(input, 'temp.out')
-
-			local output = readFile('temp.out')
-			local expected = readFile(target_dir .. name)
-			assert.equal(output, expected)
-		end
-	end)
-
-end)
+		local output_str = readFile(output)
+		local expected = readFile(target_dir .. name)
+    print("Test self_opt file " .. name ..":\t", output_str == expected)
+	end
 
