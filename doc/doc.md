@@ -1,13 +1,14 @@
 
 # About
 
-The lua_optimizer is a program that performs optimizations on Lua code. We use a technique called abstract interpretation to accomplish two optimizations: constant propagation and unreachable code elimination. The motivation for this work is that these types of optimizations cannot be done by a single-pass compiler. It is based on the Conditional Constant Propagation algorithm of Wegman and Zadeck [1].
+The `lua_optimizer` is a program that performs optimizations on Lua code. We use a technique called abstract interpretation to accomplish two optimizations: constant propagation and unreachable code elimination. The motivation for this work is that these types of optimizations cannot be done by a single-pass compiler. It is based on the Conditional Constant Propagation algorithm of Wegman and Zadeck [1].
 
 ## Overview
 
-The first step of our analysis is finding which variables are constant at each point in the program, and finding code that is unreachable. We say a variable is constant at some point of the program when it can have only one possible value at that point. At every statement, we try to determine the value of all variables immediately before and after each statement's execution, and we use that value to assess which branches the program will take. To that end, we use a technique called abstract interpretation.
+The first step of our analysis is finding which variables are constant at each point in the program, and finding code that is unreachable. We say a variable is constant at some point of the program when it can have only one possible value at that point. At every instruction, we try to determine the value of all variables immediately before and after the statement's execution, 
+and we use that *value* to assess which branches the program will take. To that end, we use a technique called abstract interpretation.
 
-Let's look at a few examples. We assume all variables start with a default value of `nil`.
+Let's look at a few examples. Following Lua's semantics, we assume all variables start with a default value of `nil`.
 
 ```
 local x, y
@@ -16,9 +17,9 @@ y = x
 print(x, y)
 ```
 
-Before the first assignment, `x` and `y` have the value `nil`. Right after the first assignment we determine `x` is `1`, because we assign the value `1` to `x`, and that `y` remains `nil`. Right after the second assignment, we determine that `y` has value `1`, because we are assigning the constant variable `x` to `y`, and that `x` remains `1`. Therefore, right before the `print` statement, we have both variables with value `1`. If we execute this program, it will print `1` twice.
+Before the first assignment, `x` and `y` have the value `nil`. Right after the first assignment we determine that `x` is `1`, and that `y` remains `nil`. Right after the second assignment, we determine that `y` has value `1`, and that `x` remains `1`. Therefore, right before the `print` statement, we have both variables with value `1`. If we execute this program, it will print `1` twice.
 
-Let's add conditions to our program. To simplify, from now on when we say before and after some statement we mean immediately before and immediately after executing that statement.
+Let's add conditions to our program. To simplify, from now on when we say before and after some instruction we mean immediately before and immediately after executing that statement.
 
 ```
 x = 1
@@ -31,7 +32,7 @@ end
 print(x, y)
 ```
 
-Knowing that `x` has a known value of `1` after the first line, we can determine which path our program will take. We know the `else` branch is unreachable, and that the program will always take the `then` branch. After the `if-then-else` statement, we can determine that `x` and `y` have the values of `2` and `3`, respectively. If we execute this program, it will print the values `2` and `3`.
+Knowing that `x` has a known value of `1` after the first line, we can determine which path our program will take. We know the `else` branch is unreachable, and that the program will always take the `then` branch. After the `if-then-else` statement, we can determine that `x` and `y` have the values `2` and `3`, respectively. If we execute this program, it will print the values `2` and `3`.
 
 Finally, let's look at loops.
 
@@ -42,30 +43,38 @@ repeat
   x = 1
   y = y + 1
   print(x, y)
-until condition
+until y == 2*x
 ```
 
-Here, at the `print` statement inside the `repeat until` body, `x` is constant and `y` is not constant. First, let's assume that we know nothing about `condition`, so there's no way to find out how many times the statements `x = 1` and `y = y + 1` will be executed.
+Here, at the `print` statement inside the `repeat-until` body, `x` is constant and `y` is not constant.
+Note that the `repeat-until` body will be executed multiple times.
 
-After the first two lines, we determine that `x` and `y` both have value `0`. When we enter the loop's body, things get more complex. The issue is that there are two ways of getting inside the loop. One coming from outside (that is, from the preceding assignment node), and another from the bottom of the loop (the back edge). And in the real execution, the back edge might be traversed multiple times. However we can still do some high level reasoning about it. Let's start with `x`.
+After the first two lines, we determine that `x` and `y` both have value `0`. When we enter the loop's body, things get more complex. The issue is that there are two ways of getting inside the loop. One coming from outside (that is, from the preceding assignment node), and another from the bottom of the loop (the back edge). In the real execution, the back edge will be traversed multiple times. However we can still do some high level reasoning about it. Let's start with `x`.
 
-On the first iteration the program assigns `1` to `x`. On subsequent iterations, the program assigns the same value again. Therefore the value of `x` after that assignment is always the same, and we know the value of `x` before the `print` statement. It still wouldn't change the fact that `x`—at the `print` statement—is known, because at that point there's only one possible value for `x`.
+On the first iteration the program assigns `1` to `x`. On subsequent iterations, the program assigns the same value again. Therefore the value of `x` after that assignment is always the same, and we know the value of `x` before the `print` statement.
 
-When analysing `y`, on the other hand, we don't have this guarantee. On the first iteration the program assigns `1` to `y`, on the second iteration it assigns `2` to `y`, and so forth. At the `print` statement, there are multiple possible values `y` can have Therefore `y` is not a constant.
+When analysing `y`, on the other hand, we don't have this guarantee. On the first iteration the program assigns `1` to `y`, on the second iteration it assigns `2` to `y`, and so forth. At the `print` statement, there are multiple possible values `y` can have. Therefore `y` is not a constant at that point.
 
 There are a few subtleties in this example, however. We need to revise a few concepts to better understand what's going on.
 
 ## Lattice
 
-Firstly, lets define what is a meet (also known as an infimum or greatest lower bound) and join (also known as a supremum or least upper bound) of a partially ordered set `A` [2]\[3]. Let `A` be a set with a partial order, and `x`, `y` and `z` elements in `A`:
+-- definir o que é lower bound e upper bound.
+-- Lembrar o que é uma orderm parcial. Dizer que lattice ';e um aordem parcial. Relembrando, OP é ...
+
+First, let us define what is a meet (also known as an infimum or greatest lower bound) and join (also known as a supremum or least upper bound) of a partially ordered set `A` [2]\[3]. Let `A` be a set with a partial order, and `x`, `y` and `z` elements in `A`:
 
   * The element `z` is the meet of the pair `x` and `y` if it satisfies two conditions: `z` is a lower bound of `x` and `y`, and `z` is greater than or equal to any other lower bound of `x` and `y`.
 
   * The element `z` is the join of the pair `x` and `y` if it satisfies two conditions: `z` is a upper bound of `x` and `y`, and `z` is less than or equal to any other upper bound of `x` and `y`.
 
-A lattice is a partially ordered set in which every two elements have a meet and a join [4]. By the definitions above, it follows that the meet and join between any pair of elements is unique. We use a simple bounded lattice in our analysis, which has a greatest element and a least element.
+-- add proof of uniqueness
 
-There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
+A lattice is a partially ordered set in which every two elements have a meet and a join [4]. By the definitions above, it follows that the meet and join between any pair of elements is unique.
+
+We use a simple bounded lattice in our analysis, which has a greatest element and a least element. There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
+
+-- explicar o que é meet de que aqui. Note that in this lattice meet between two middle elemetns is bottom
 
 The abstract interpretation algorithm associates a lattice element to every variable at each point in the program. This mapping represents some knowledge about the value of each variable, where each element have the following meaning:
 
@@ -73,22 +82,76 @@ The abstract interpretation algorithm associates a lattice element to every vari
   * At the middle, the elements each represent a different value. That is, a variable with an element of this kind is a constant with a known value.
   * Bottom means the variable is not constant (or that it cannot be guaranteed to be constant).
 
+-- Falar do simbolo e propriedade *antes*
+
 The most relevant operation between elements for our analysis is the meet operation, represented by the symbol $\sqcap$. It is associative and commutative, following three rules:
 
 // Vou colocar depois.
 
-We could also use a more complex lattice, where types are also added (e.g. the meet of two different numbers is not Bottom, but an element that represents the number type), and "truthy" and "falsy" elements (e.g. the meet between numbers, strings and true is "truthy", the meet between nil and false is "falsy"). Though these changes would increase the depth of our lattice, it would still remain bounded, and might provide more information for our optimizations.
+-- Adicionar a intuição das regras depois
+
+We could also use a more complex lattice. For instance, we could ... where types are also added (e.g. the meet of two different numbers is not Bottom, but an element that represents the number type), or "truthy" and "falsy" elements (e.g. the meet between numbers, strings and true is "truthy", the meet between nil and false is "falsy"). Though these changes would increase the depth of our lattice, the lattice would still remain bounded, and might provide more information for our optimizations.
 
 ## Fixed Point
 
-In abstract terms, our analysis is looking for the greatest fixed point. We start by assuming every variable is undefined (Top) everywhere, and that every statement is unreachable. Through abstract interpretation, we may find out this assumption was incorrect and need to fall back into a more conservative truth, lowering lattice elements and marking statements as reachable until we reach a stable configuration. That stable configuration is a fixed point. We don't start in a fixed point, we reach it by lowering lattice elements. If the algorithm is stopped prematurely, the found configuration might be incorrect.
+Our goal in this analysis is to assign to every variable at each point in the program a valid lattice element.
+To explain what "valid" means, let's take a step back and talk about the real execution (also called concrete interpretation) of the following program.
 
-Note that lowering every variable to Bottom is a stable configuration. However, it is not a very useful fixed point. We want to find the greatest fixed point, the configuration in which we find the highest number of constant variables, because it gives us more information. That information is then used for constant propagation and unreachable code elimination. More on that later.
+```
+x = 1
+while x < 5 do
+  x = x + 1
+end
+```
+Before the loop, the variable `x` can only assume the value `1`.
+At the beginning of the loop, `x` starts with value `1` and goes up to `4` in increments of `1`.
+After the loop, `x` has the value `5`.
+As such, in the concrete interpretation, the set of values `x` can have before the loop is `{1}`, the set at the beginning of the loop is `{1, 2, 3, 4}`, and the set after the loop is `{5}`
+
+These sets are the concrete values `x` can have during the concrete interpretation, at their respective points of the program.
+We can map each set of concrete values to a lattice element, through what is called an abstraction function.
+This abstraction function transforms a value from the concrete set to the abstract set, which is out lattice.
+For our lattice, the set `{1}` abstracts to the lattice element `1`, the set `{1, 2, 3, 4}` abstracts to Bottom, and the set `{5}` abstracts to the lattice element `5`.
+
+A lattice element assigned to `x` is valid if that element is less or equal than the abstraction of `x`.
+In other words, at each point of the program, our analysis can only assign a lower or equal lattice element to `x` than its abstraction.
+If `x` abstracts to Bottom, our analysis must assign Bottom to `x`.
+If `x` abstracts to a constant, must either assign that constant or Bottom to `x`.
+
+Note that assigning Bottom to every variable is always valid, because Bottom is less or equal than all lattice elements.
+However, our analysis wouldn't be very useful if it did that.
+We want to find the greatest valid lattice element for every variable at every point in the program, because it gives us more information.
+That information is then used for constant propagation and unreachable code elimination. More on that later.
+
+To that end, our analysis starts by assuming every variable is undefined (Top) everywhere, and that every statement is unreachable.
+This configuration is invalid for most programs.
+Through abstract interpretation, we may find out this assumption was incorrect and need to fall back into a more conservative truth, lowering lattice elements and marking statements as reachable until we reach a stable configuration.
+
+That stable configuration is a fixed point. We don't start in a fixed point, we reach it by lowering lattice elements.
+If the algorithm is stopped prematurely, the found configuration might be invalid.
+Assigning Bottom to every variable everywhere is a fixed point.
+However, our analysis searches for the greatest fixed point, because it gives us more information.
+
+
+## Evaluating Expressions
+
+We also need a way to evaluate expressions to abstract values (that is, expressions to lattice elements).
+To that end, we first recursively evaluate each subexpression, and then evaluate the expression itself.
+Let's use, as an example, expressions that contain only integer constants, variables, and addition.
+
+Constants evaluate to their respective lattice element.
+Variables evaluate to the lattice element assigned to them at that point in the program, which may be Bottom.
+Addition of two constant lattice elements result in a new lattice element with the result of the addition.
+Addition of Bottom and any other lattice element results in Bottom.
+
+Note that a variable cannot evaluate to Top, because (in the case of Lua) we cannot use a variable before defining it, and defined variables are initiated with `nil`.
+When we add the entire language to our expression evaluator, we may discover bugs in the program, such as trying to add `nil` to a string.
+In those cases, we may stop prematurely and raise an error.
 
 
 ## Abstract Interpretation
 
-We can now give an informal description of our algorithm and revisit out last example. Every statement contains a before state and after state. The program state is given by a map of every variable and its lattice element, which we initialize with Top.
+We can now give an informal description of our algorithm and revisit out last example:
 
 ```
 x = 0
@@ -97,24 +160,35 @@ repeat
   x = 1
   y = y + 1
   print(x, y)
-until condition
+until y == 2*x
 ```
 
-After the second statement, we know that `x` and `y` have the lattice element `0`. When we get to the loop, we don't from which edge the program reached that point. The abstract interpretation performing the meet between all variables of all incident states, and continues with the resulting state.
+Every statement contains a before state and an after state. The program state is given by a map of every variable to its lattice element, which we initialize with Top.
 
-Let's start with `x`. On the first iteration, we perform the meet between the element of `x` coming from the preceding assignment (`0`) and the element of `x` coming from the back edge (Top, as the analysis hasn't reached that point yet). Meet between Top and `0` is `0`, so we continue our analysis as if `x` is `0`. We may find out that is not true later in the analysis.
+After the second statement, we know that `x` and `y` have the lattice element `0`. When we get to the loop, we don't know from which edge the program reached that point.
 
-After that first statement, `x` has the lattice element `1` because we assign the value `1` to `x`. When we reach the bottom, as `condition` is not known, we need to consider the possibility of repeating the loop's body. Back at the loop's top, we perform the meet operator again. Now the lattice element of `x` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
+The abstract interpretation performs the meet between all variables of all incident states, and continues with the updated state.
 
-The meet operator between the elements `0` and `1` is Bottom. As such, we come to the conclusion our first assumption was incorrect: `x` is not constant at the loop's top. If we were to add `print` there, the value of `x` would depend on which iteration the loop is at. However, after the first assignment, `x` goes back to having a known value. So, at that point, our assumption was correct: `x` is constant at the print statement.
+Let's start with `x`. On the first iteration, we perform the meet between the element of `x` coming from the preceding assignment (`0`) and the element of `x` coming from the back edge (Top, as the analysis hasn't reached that point yet). Meet between Top and `0` is `0`, so we continue our analysis with `x` being `0`. We may find out that is not true later in the analysis.
 
-Now, let's analyse `y`. On the first iteration, we perform the meet between the element of `y` coming from the preceding assignment (`0`) and the element of `y` coming from the back edge (Top, as the analysis hasn't reached that point yet). Meet between Top and `0` is `0`, so we continue our analysis as if `y` is `0`. We may find out that is not true later in the analysis.
+After that first statement, `x` has the lattice element `1` because we assign the value `1` to `x`. When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body. Back at the top, we perform the meet operator again. Now the lattice element of `x` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
 
-After second statement, `y` has the lattice element `1`, because we assign to `y` the value of `y` (which, at this point, is `0`) plus `1`. When we reach the bottom, as `condition` is not known, we need to consider the possibility of repeating the loop's body. Back at the loop's top, we perform the meet operator again. Now the lattice element of `y` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
+The meet operator between the elements `0` and `1` is Bottom. As such, we conclude `x` is not constant at the loop's top.
+However, after the first assignment, `x` goes back to having a single possible value. So, after the assignment, `x` is constant.
 
-The meet operator between the elements `0` and `1` is Bottom. As such, we come to the conclusion our first assumption was incorrect: `y` is not constant at the loop's top.  Differently from `x`, however, `y` remains not constant after the second statement, because we are assigning to it a value that is, itself, not constant before that statement. So, at that point, our first assumption was also incorrect: `y` is not constant at the print statement.
+Now, let's analyse `y`. On the first iteration, we perform the meet between the element of `y` coming from the preceding assignment (`0`) and the element of `y` coming from the back edge (Top, as the analysis hasn't reached that point yet). Meet between Top and `0` is `0`, so we continue our analysis with `y` being `0`. We may find out that is not true later in the analysis.
 
-Let's look into a more interesting example, from Click et al [3]:
+After second statement, `y` has the lattice element `1`, because the expression `y + 1` evaluates to `1`, as discussed in the previous section.
+When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body.
+ Back at the top, we perform the meet operator again. Now the lattice element of `y` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
+
+The meet operator between the elements `0` and `1` is Bottom.
+As such, we conclude `y` is not constant.
+At the second assignment statement, the expression `y + 1` evaluates to Bottom, because (at that point) `y` equals Bottom.
+So we assign Bottom to `y`, concluding that after that statement `y` is also Bottom, and as such is not constant.
+
+Let's look into a more interesting example, from Click et al [3].
+Let's assume `condition` evaluates to Bottom, and as such we don't know how many times (or even if) that loop will repeat
 
 ```
 x = 1
@@ -124,30 +198,40 @@ repeat
 until condition
 ```
 
-After the first line, `x` has the lattice element `1`. When we enter the loop's body, we perform the meet between the two possible elements of `x`: `1` from the previous assignment, or Top from the back edge. Meet between `1` and Top is `1`, so we continue as if `x` has value `1`, which we may later find to be incorrect. Inside, after the assignment statement, `x` has the lattice element `1`, because `2 - 1` is `1`. Again, as we don't know the value of `condition`, we have to consider the loop will execute multiple times.
+After the first line, `x` has the lattice element `1`. When we enter the loop's body, we perform the meet between the two possible elements of `x`: `1` from the previous assignment, and Top from the back edge. Meet between `1` and Top is `1`, so we continue with `x` equals `1`, which we may later find to be incorrect. Inside the loop's body, after the assignment statement, `x` has the lattice element `1`, because the expression `x - 1` is `1`.
+As we don't know the value of `condition`, we have to conservatively assume the loop will execute multiple times.
 
-Back at the top, `x` has two possible elements associated with it: the one coming from outside, and another from the back edge. We perform the meet operator between the two. That is, `1` meet `1`. Differently from the previous example, the meet result is `1`, as the meet between two constants, if they are the same, is their common value. Our assumption was correct: `x` is indeed constant at the loop's top. In fact, it is constant at every point of the loop.
-
-Let's look at a more formal description of our algorithm.
+Back at the top, `x` has two possible elements associated with it: the one coming from outside, and another from the back edge.
+We perform the meet operator between the two. That is, `1` meet `1`.
+Differently from the previous example, the meet result is `1`, as the meet between two constants, if they are the same, is their common value.
+As such, we conclude `x` is constant with the lattice element `1` throughout the loop's execution.
 
 
 ## The Algorithm
 
-The abstract interpretation operates on the program's control flow graph. The nodes represent statements, and directed edges represent the control flow. On top of that, each node contains a pair of cells: an "in cell" and an "out cell". A cell is a structure that contains the program's state at that point of execution. It is essentially a map of all variables in scope, associating each variable to a lattice element.
+The abstract interpretation operates on the program's control flow graph. The nodes represent instructions, and directed edges represent the control flow.
 
-The abstract interpretation works by scheduling edges and executing the node those edges point to. We use a simple iterative worklist technique, containing CFG edges that need be processed. We start with an empty worklist, marking all edges as "not executable", and setting all variables in all cells to Top.
+To each point in the program (that is, before an instruction and after an instruction) we associate a structure that contains the program's state at that point of the execution.
+We'll call this structure a cell, naming the cell before the instruction the "in cell" and the one after it the "out cell".
+A cell is a map of all variables in scope to a lattice element.
+In other words, we map each point in the program to a cell, which maps every variable to a lattice element.
+As such, to each pair point and variable there's a lattice element.
 
-The first step of the abstract interpretation is marking the start edge as executable, and adding it to the previously empty worklist. Then we enter a loop: while the worklist is not empty, we remove an edge from the list and execute the node it is pointing to. During the execution of a node, we schedule new edges to be processed, marking them as executable in the process.
+The abstract interpretation works by scheduling edges and executing the node those edges point to. We use a simple iterative worklist technique, containing CFG edges that need be processed. We start with an empty worklist, marking all edges as dead, and setting all variables in all cells to Top.
+
+-- Rename executable to "alive" and "dead"
+
+The first step of the abstract interpretation is marking the start edge as alive, and adding it to the previously empty worklist. Then we enter a loop: while the worklist is not empty, we remove an edge from the list and execute the node it is pointing to. During the execution of a node, we schedule new edges to be processed, marking them as alive in the process.
 
 Executing a node involves a few steps:
 
-  1. Calculate the new "in cell" from all executable incident edges. The algorithm gets all preceding nodes whose edges are traversable, and performs the meet operation between their "out cells". In other words, for all executable in edges, we get the "out cell" of the node they're from, and for each variable of those cells we perform the meet operation between their lattice elements.
+  1. Calculate the new "in cell" from all alive incident edges. The algorithm gets all preceding nodes whose edges are traversable, and performs the meet operation between their "out cells". In other words, for all alive in edges, we get the "out cell" of the node they're from, and for each variable of those cells we perform the meet operation between their lattice elements.
 
   2. If the node hasn't been executed before, mark the node as executed and skip to step 3.
 
       Otherwise, compare the new "in cell" with the previous one. This is the stop condition of our algorithm. If they're equal, we stop this node's execution, because whatever the node is about to execute will yield the same results as the previous iteration. In other words, for the same pair in-state/execution, the out-state will be the same. Therefore there isn't any state changes to propagate, they've already been propagated before.
 
-  3. Evaluate the node using the new "in cell" as its state, update the "out cell" with the changes from this computation, and schedule out edges. Scheduled edges are marked as executable. This step depends on the node type:
+  3. Evaluate the node using the new "in cell" as its state, update the "out cell" with the changes from this computation, and schedule out edges. Scheduled edges are marked as alive. This step depends on the node type:
 
       * Assignment nodes update a variable's lattice element and schedule its single out edge.
 
@@ -166,7 +250,7 @@ When there are no more edges in the work list, the abstract interpretation is do
 
 ## Edges vs Nodes
 
-In our method we schedule edges, rather than nodes. A different approach could, instead, associate the executable flag to nodes. However, this is not optimal, as we can find more constants scheduling edges. The reason is that two nodes may be executable and there may be an edge between them, but that edge may not be traversable. This would result in an unnecessary meet operation that could potentially set bottom to a constant variable. Let's look at a modified example from Wegman and Zadeck [1]:
+In our method we schedule edges, rather than nodes. A different approach could, instead, associate the dead or alive flag to nodes. However, this is not optimal, as we can find more constants scheduling edges. The reason is that two nodes may be alive and there may be an edge between them, but that edge may not be traversable. This would result in an unnecessary meet operation that could potentially set bottom to a constant variable. Let's look at a modified example from Wegman and Zadeck [1]:
 ```
 i = 1
 while true do
@@ -180,9 +264,9 @@ print(i)
 
 Here, the edge exiting the `while` node is not traversable, as its condition is always true. The only way to reach the `print` statement is through the break inside the loop.
 
-If we schedule edges, at the `print` statement the only executable in edge is the one coming from inside the `if` statement. The meet between all its traversable in edges (in this case there's only one) will yield that `i` is a constant with value `10`, because that's the only possible value for `x` inside the `if`.
+If we schedule edges, at the `print` statement the only alive in edge is the one coming from inside the `if` statement. The meet between all its traversable in edges (in this case there's only one) will yield that `i` is a constant with value `10`, because that's the only possible value for `x` inside the `if`.
 
-However, if we associate the executable flag to the nodes, the meet operation between all previous executable nodes would include the `while` body. We would do the meet between Bottom (which is the lattice element associated with `x` at the loop's end) and Constant `10` (which is the lattice element associated with `x` at the end of the `if` node). So we would conclude that `i` is not constant.
+However, if we associate the dead or alive flag to the nodes, the meet operation between all previous alive nodes would include the `while` body. We would do the meet between Bottom (which is the lattice element associated with `x` at the loop's end) and `10` (which is the lattice element associated with `x` at the end of the `if` node). So we would conclude that `i` is not constant.
 
 
 ## Constant Propagation and Unreachable Code Elimination
