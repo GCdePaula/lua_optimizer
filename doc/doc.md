@@ -59,19 +59,19 @@ There are a few subtleties in this example, however. We need to revise a few con
 
 ## Lattice
 
-A lattice is a _partially ordered set_ (poset) in which every two elements have a _meet_ and a _join_ [4].
+A lattice is a _partially ordered set_ (poset) in which every two elements have a _meet_ and a _join_ [2].
 We'll explain what each of those terms mean.
 
-Informally, a _partially ordered set_ is a set together with a binary relation (≤) indicating that, for certain pairs of elements of the set, one of the elements precedes the other [6].
+Informally, a _partially ordered set_ is a set together with a binary relation (≤) indicating that, for certain pairs of elements of the set, one of the elements precedes the other [3].
 The word "partial", opposed to total, means that this relation doesn't necessarily exist for every pair of elements.
 
-To understand the concepts of _meet_ (denoted by the symbol ∧, and is also known as an infimum or greatest lower bound) and _join_ (denoted by the symbol ∨, and is also known as a supremum or least upper bound) we need to define the _lower bound_ and the _upper bound_ of two elements in a poset [2]\[3].
+To understand the concepts of _meet_ (denoted by the symbol ∧, and is also known as an infimum or greatest lower bound) and _join_ (denoted by the symbol ∨, and is also known as a supremum or least upper bound) we need to define the _lower bound_ and the _upper bound_ of two elements in a poset.
 Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A`:
   * The element `z` is a _lower bound_ of the pair `x` and `y` if `z ≤ x` and `z ≤ y`.
 
   * Similarly, `z` is an _upper bound_ of the pair `x` and `y` if `x ≤ z` and `y ≤ z`.
 
-With these two definitions, we can define _meet_ and _join_ of a poset [2]\[3].
+With these two definitions, we can define _meet_ and _join_ of a poset [4]\[5].
 Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A`:
   * The element `z` is the _meet_ of the pair `x` and `y` if it satisfies two conditions: `z` is a lower bound of `x` and `y`, and `z` is greater than or equal to any other lower bound of `x` and `y`.
 
@@ -87,8 +87,8 @@ For our analysis, we'll use a simple bounded lattice, which has a greatest eleme
 The most relevant operation between elements for our analysis is the _meet_ operation, with the following rules. Here, C<sub>i</sub> and C<sub>j</sub> are some middle element:
   * any ∧ Top = any
   * any ∧ Bottom = Bottom
-  * C<sub>i</sub> ∧ C<sub>j</sub> = C<sub>i</sub> if i = j
-  * C<sub>i</sub> ∧ C<sub>j</sub> = Bottom if i ≠ j
+  * C<sub>i</sub> ∧ C<sub>j</sub> = C<sub>i</sub>, if i = j
+  * C<sub>i</sub> ∧ C<sub>j</sub> = Bottom, if i ≠ j
 
 The abstract interpretation algorithm associates a lattice element to every variable at each point in the program. This mapping represents some knowledge about the value of each variable, where each element have the following meaning:
 
@@ -120,10 +120,10 @@ We can map each set of concrete values to a lattice element, through what is cal
 This abstraction function transforms a value from the concrete set to the abstract set, which is out lattice.
 For our lattice, the set `{1}` abstracts to the lattice element `1`, the set `{1, 2, 3, 4}` abstracts to Bottom, and the set `{5}` abstracts to the lattice element `5`.
 
-A lattice element assigned to `x` at some point of the program is valid if that element is less or equal than the abstraction of `x`.
-In other words, at each point of the program, our analysis can only assign a lower or equal lattice element to `x` than its abstraction.
-If `x` abstracts to Bottom, our analysis must assign Bottom to `x`.
-If `x` abstracts to a constant, must either assign that constant or Bottom to `x`.
+A lattice element assigned to `x` at some point of the program is valid if that element is less or equal than the abstraction of the concrete values of `x`.
+In other words, at each point of the program, our analysis can only assign a lower or equal lattice element to `x` than the abstraction of its concrete values.
+If the concrete values of `x` abstracts to Bottom, our analysis must assign Bottom to `x`.
+If the concrete values of `x` abstracts to a constant, must either assign that constant or Bottom to `x`.
 
 Note that assigning Bottom to every variable is always valid, because Bottom is less or equal than all lattice elements.
 However, our analysis wouldn't be very useful if it did that.
@@ -173,29 +173,28 @@ until y == 2*x
 Every statement contains a before state and an after state. The program state is given by a map of every variable to its lattice element, which we initialize with Top.
 
 After the second statement, we know that `x` and `y` have the lattice element `0`. When we get to the loop, we don't know from which edge the program reached that point.
-
 The abstract interpretation performs the _meet_ between all variables of all incident states, and continues with the updated state.
 
-Let's start with `x`. On the first iteration, we perform the _meet_ between the element of `x` coming from the preceding assignment (`0`) and the element of `x` coming from the back edge (Top, as the analysis hasn't reached that point yet). _meet_ between Top and `0` is `0`, so we continue our analysis with `x` being `0`. We may find out that is not true later in the analysis.
+Let's start with `x`. On the first iteration, we perform the _meet_ between the element of `x` coming from the preceding assignment (`0`) and the element of `x` coming from the back edge (Top, as the analysis hasn't reached that point yet). _Meet_ between Top and `0` is `0`, so we continue our analysis with `x` being `0`. We may find out that is not true later in the analysis.
 
-After that first statement, `x` has the lattice element `1` because we assign the value `1` to `x`. When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body. Back at the top, we perform the _meet_ operator again. Now the lattice element of `x` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
+After that first statement, `x` has the lattice element `1` because we assign the value `1` to `x`. When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the top of the loop and repeat the loop's body. Back at the top, we perform the _meet_ operator again. Now the lattice element of `x` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
 
 The _meet_ operator between the elements `0` and `1` is Bottom. As such, we conclude `x` is not constant at the loop's top.
 However, after the first assignment, `x` goes back to having a single possible value. So, after the assignment, `x` is constant.
 
-Now, let's analyse `y`. On the first iteration, we perform the _meet_ between the element of `y` coming from the preceding assignment (`0`) and the element of `y` coming from the back edge (Top, as the analysis hasn't reached that point yet). _meet_ between Top and `0` is `0`, so we continue our analysis with `y` being `0`. We may find out that is not true later in the analysis.
+Now, let's analyse `y`. On the first iteration, we perform the _meet_ between the element of `y` coming from the preceding assignment (`0`) and the element of `y` coming from the back edge (Top, as the analysis hasn't reached that point yet). _Meet_ between Top and `0` is `0`, so we continue our analysis with `y` being `0`. We may find out that is not true later in the analysis.
 
 After second statement, `y` has the lattice element `1`, because the expression `y + 1` evaluates to `1`, as discussed in the previous section.
-When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body.
+When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the top of the loop and repeat the loop's body.
  Back at the top, we perform the _meet_ operator again. Now the lattice element of `y` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
 
 The _meet_ operator between the elements `0` and `1` is Bottom.
 As such, we conclude `y` is not constant.
 At the second assignment statement, the expression `y + 1` evaluates to Bottom, because (at that point) `y` equals Bottom.
-So we assign Bottom to `y`, concluding that after that statement `y` is also Bottom, and as such is not constant.
+So we assign Bottom to `y`, concluding that after that statement `y` is also Bottom, and as such is not constant at that point.
 
-Let's look into a more interesting example, from Click et al [3].
-Let's assume `condition` evaluates to Bottom, and as such we don't know how many times (or even if) that loop will repeat
+Let's look into a more interesting example, from Click et al [6].
+Let's assume `condition` evaluates to Bottom, and as such we don't know how many times (or even if) that loop will repeat.
 
 ```
 x = 1
@@ -205,7 +204,7 @@ repeat
 until condition
 ```
 
-After the first line, `x` has the lattice element `1`. When we enter the loop's body, we perform the _meet_ between the two possible elements of `x`: `1` from the previous assignment, and Top from the back edge. _meet_ between `1` and Top is `1`, so we continue with `x` equals `1`, which we may later find to be incorrect. Inside the loop's body, after the assignment statement, `x` has the lattice element `1`, because the expression `x - 1` is `1`.
+After the first line, `x` has the lattice element `1`. When we enter the loop's body, we perform the _meet_ between the two possible elements of `x`: `1` from the previous assignment, and Top from the back edge. _Meet_ between `1` and Top is `1`, so we continue with `x` equals `1`, which we may later find to be incorrect. Inside the loop's body, after the assignment statement, `x` has the lattice element `1`, because the expression `x - 1` is `1`.
 As we don't know the value of `condition`, we have to conservatively assume the loop will execute multiple times.
 
 Back at the top, `x` has two possible elements associated with it: the one coming from outside, and another from the back edge.
@@ -238,11 +237,11 @@ Executing a node involves a few steps:
 
   3. Evaluate the node using the new "in cell" as its state, update the "out cell" with the changes from this computation, and schedule out edges. Scheduled edges are marked as alive. This step depends on the node type:
 
-      * Assignment nodes update a variable's lattice element and schedule its single out edge.
+      * Assignment nodes evaluate their expression, update the assigned variable's lattice element with the result of the evaluation and schedule its single out edge.
 
-      * Local assignment nodes add a variable to the scope, assign it a value (possibly nil if there're no expressions), and schedule its single out edge.
+      * Local assignment nodes evaluate their expression, add a variable to the scope, assign it the evaluated expression or `nil` if there are no expressions, and schedule its single out edge.
 
-      * If, while, and repeat until nodes evaluate their condition, and conditionally schedule its out edges. If the condition is a constant, only one branch needs to be scheduled. If it is Bottom, both must be scheduled, as its condition's value is unknown.
+      * If, while, and repeat until nodes evaluate their condition, and conditionally schedule its out edges. If the condition is a constant, only one branch needs to be scheduled. If it is Bottom, both must be conservatively scheduled, as its condition's value is unknown.
 
       * Generic and numeric for nodes add variables to the inner block's scope, setting their lattice element to Bottom. We then schedules both edges.
 
@@ -344,12 +343,13 @@ Once this is done, we output the optimized Lua code.
 
 [1] Mark N. Wegman and F. Kenneth Zadeck. 1991. Constant propagation with conditional branches. ACM Trans. Program. Lang. Syst. 13, 2 (April 1991), 181–210. DOI:https://doi.org/10.1145/103135.103136
 
-[2] https://en.wikipedia.org/wiki/Join_and_meet
+[2] https://en.wikipedia.org/wiki/Lattice\_(order)
 
-[3] https://en.wikipedia.org/wiki/Infimum_and_supremum
+[3] https://en.wikipedia.org/wiki/Partially_ordered_set
 
-[4] https://en.wikipedia.org/wiki/Lattice\_(order)
+[4] https://en.wikipedia.org/wiki/Join_and_meet
 
-[5] Click, Cliff & Cooper, Keith. (2000). Combining Analyses, Combining Optimizations. ACM Transactions on Programming Languages and Systems. 17. 10.1145/201059.201061.
+[5] https://en.wikipedia.org/wiki/Infimum_and_supremum
 
-[6] https://en.wikipedia.org/wiki/Partially_ordered_set
+[6] Click, Cliff & Cooper, Keith. (2000). Combining Analyses, Combining Optimizations. ACM Transactions on Programming Languages and Systems. 17. 10.1145/201059.201061.
+
