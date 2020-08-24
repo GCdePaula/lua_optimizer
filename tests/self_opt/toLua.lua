@@ -189,63 +189,78 @@ v5[ "GenericFor" ] = function(v94, v95, v96)
 	v10(v99["statements"], v95, ("\9" .. v96))
 	_ENV["table"]["insert"](v95, (v96 .. "end"))
 end
-v5[ "While" ] = function(v108, v109, v110)
-	local v111, v112 = v108["condition"], v108["body"]
-	_ENV["table"]["insert"](v109, (((v110 .. "while ") .. v15(v111, v110)) .. " do"))
-	v10(v112["statements"], v109, ("\9" .. v110))
+v5[ "NumericFor" ] = function(v108, v109, v110)
+	local v111, v112, v113, v114, v115 = v108["var"], v108["init"], v108["limit"], v108["step"], v108["body"]
+	local v116 = v15(v112, v110)
+	local v117 = v15(v113, v110)
+	local v118 = (v114 and v15(v114, v110))
+	local v119
+	if v114 then
+		v119 = ((((v116 .. ",") .. v117) .. ",") .. v118)
+	else
+		v119 = ((v116 .. ",") .. v117)
+	end
+	_ENV["table"]["insert"](v109, (((((v110 .. "for ") .. v111["name"]) .. "=") .. v119) .. " do"))
+	v10(v115["statements"], v109, ("\9" .. v110))
 	_ENV["table"]["insert"](v109, (v110 .. "end"))
 end
-v5[ "Repeat" ] = function(v113, v114, v115)
-	local v116, v117 = v113["condition"], v113["body"]
-	_ENV["table"]["insert"](v114, (v115 .. "repeat"))
-	v10(v117["statements"], v114, ("\9" .. v115))
-	_ENV["table"]["insert"](v114, ((v115 .. "until ") .. v15(v116, v115)))
+v5[ "While" ] = function(v120, v121, v122)
+	local v123, v124 = v120["condition"], v120["body"]
+	_ENV["table"]["insert"](v121, (((v122 .. "while ") .. v15(v123, v122)) .. " do"))
+	v10(v124["statements"], v121, ("\9" .. v122))
+	_ENV["table"]["insert"](v121, (v122 .. "end"))
 end
-v5[ "Do" ] = function(v118, v119, v120)
-	_ENV["table"]["insert"](v119, (v120 .. "do"))
-	v10(v118["body"]["statements"], v119, ("\9" .. v120))
-	_ENV["table"]["insert"](v119, (v120 .. "end"))
+v5[ "Repeat" ] = function(v125, v126, v127)
+	local v128, v129 = v125["condition"], v125["body"]
+	_ENV["table"]["insert"](v126, (v127 .. "repeat"))
+	v10(v129["statements"], v126, ("\9" .. v127))
+	_ENV["table"]["insert"](v126, ((v127 .. "until ") .. v15(v128, v127)))
 end
-v5[ "FunctionCallStat" ] = function(v121, v122, v123)
-	local v124, v125 = v121["func"], v121["args"]
-	local v126 = v15(v124, v123)
-	local v127 = {  }
-	for v128, v129 in _ENV["ipairs"](v125) do
-		_ENV["table"]["insert"](v127, v15(v129, v123))
+v5[ "Do" ] = function(v130, v131, v132)
+	_ENV["table"]["insert"](v131, (v132 .. "do"))
+	v10(v130["body"]["statements"], v131, ("\9" .. v132))
+	_ENV["table"]["insert"](v131, (v132 .. "end"))
+end
+v5[ "FunctionCallStat" ] = function(v133, v134, v135)
+	local v136, v137 = v133["func"], v133["args"]
+	local v138 = v15(v136, v135)
+	local v139 = {  }
+	for v140, v141 in _ENV["ipairs"](v137) do
+		_ENV["table"]["insert"](v139, v15(v141, v135))
 	end
-	_ENV["table"]["insert"](v122, ((((v123 .. v126) .. "(") .. _ENV["table"]["concat"](v127, ", ")) .. ")"))
+	_ENV["table"]["insert"](v134, ((((v135 .. v138) .. "(") .. _ENV["table"]["concat"](v139, ", ")) .. ")"))
 end
-v5[ "MethodCallStat" ] = function(v130, v131, v132)
-	local v133, v134, v135 = v130["receiver"], v130["method"], v130["args"]
-	local v136 = v15(v133, v132)
-	local v137 = {  }
-	for v138, v139 in _ENV["ipairs"](v135) do
-		_ENV["table"]["insert"](v137, v15(v139, v132))
+v5[ "MethodCallStat" ] = function(v142, v143, v144)
+	local v145, v146, v147 = v142["receiver"], v142["method"], v142["args"]
+	local v148 = v15(v145, v144)
+	local v149 = {  }
+	for v150, v151 in _ENV["ipairs"](v147) do
+		_ENV["table"]["insert"](v149, v15(v151, v144))
 	end
-	_ENV["table"]["insert"](v131, ((((((v132 .. v136) .. ":") .. v134) .. "(") .. _ENV["table"]["concat"](v137, ", ")) .. ")"))
+	_ENV["table"]["insert"](v143, ((((((v144 .. v148) .. ":") .. v146) .. "(") .. _ENV["table"]["concat"](v149, ", ")) .. ")"))
 end
-v5[ "Break" ] = function(v140, v141, v142)
-	_ENV["table"]["insert"](v141, (v142 .. "break"))
+v5[ "Break" ] = function(v152, v153, v154)
+	_ENV["table"]["insert"](v153, (v154 .. "break"))
 end
-v5[ "Return" ] = function(v143, v144, v145)
-	local v146 = v143["exps"]
-	if v146 then
-		local v147 = {  }
-		for v148, v149 in _ENV["ipairs"](v146) do
-			_ENV["table"]["insert"](v147, v15(v149, v145))
+v5[ "Return" ] = function(v155, v156, v157)
+	local v158 = v155["exps"]
+	if v158 then
+		local v159 = {  }
+		for v160, v161 in _ENV["ipairs"](v158) do
+			_ENV["table"]["insert"](v159, v15(v161, v157))
 		end
-		_ENV["table"]["insert"](v144, ((v145 .. "return ") .. _ENV["table"]["concat"](v147, ", ")))
+		_ENV["table"]["insert"](v156, ((v157 .. "return ") .. _ENV["table"]["concat"](v159, ", ")))
 	else
-		_ENV["table"]["insert"](v144, (v145 .. "return"))
+		_ENV["table"]["insert"](v156, (v157 .. "return"))
 	end
 end
 v5[ "Nop" ] = function()
 end
-local v150
-v150 = function(v151)
-	local v152 = {  }
-	v10(v151["statements"], v152, "")
-	return _ENV["table"]["concat"](v152, "\
+local v162
+v162 = function(v163)
+	local v164 = {  }
+	v10(v163["statements"], v164, "")
+	return _ENV["table"]["concat"](v164, "\
 ")
 end
-return v150
+return v162

@@ -145,73 +145,83 @@ v36[ "GenericFor" ] = function(v54)
 	v37(v54["loopEdge"])
 	v37(v54["continueEdge"])
 end
-v36[ "While" ] = function(v58)
-	local v59 = v58["condition"]
+v36[ "NumericFor" ] = function(v58)
+	local v59, v60, v61 = v58["init"], v58["limit"], v58["step"]
 	v3(v59)
-	local v60 = v59["element"]
-	local v61, v62 = v60:test()
+	v3(v60)
 	if v61 then
-		if v62 then
-			return v37(v58["trueEdge"])
+		v3(v61)
+	end
+	v37(v58["loopEdge"])
+	v37(v58["continueEdge"])
+end
+v36[ "While" ] = function(v62)
+	local v63 = v62["condition"]
+	v3(v63)
+	local v64 = v63["element"]
+	local v65, v66 = v64:test()
+	if v65 then
+		if v66 then
+			return v37(v62["trueEdge"])
 		else
-			v58[ "tag" ] = "Nop"
-			return v37(v58["falseEdge"])
+			v62[ "tag" ] = "Nop"
+			return v37(v62["falseEdge"])
 		end
 	else
-		v37(v58["trueEdge"])
-		v37(v58["falseEdge"])
+		v37(v62["trueEdge"])
+		v37(v62["falseEdge"])
 	end
 end
-v36[ "Repeat" ] = function(v63)
-	local v64 = v63["condition"]
-	v3(v64)
-	local v65 = v64["element"]
-	local v66, v67 = v65:test()
-	if v66 then
-		if v67 then
-			v63[ "tag" ] = "Do"
-			return v37(v63["continueEdge"])
+v36[ "Repeat" ] = function(v67)
+	local v68 = v67["condition"]
+	v3(v68)
+	local v69 = v68["element"]
+	local v70, v71 = v69:test()
+	if v70 then
+		if v71 then
+			v67[ "tag" ] = "Do"
+			return v37(v67["continueEdge"])
 		else
 		end
 	else
-		v37(v63["continueEdge"])
-		v37(v63["repeatEdge"])
+		v37(v67["continueEdge"])
+		v37(v67["repeatEdge"])
 	end
 end
-v36[ "FunctionCallStat" ] = function(v68)
-	local v69, v70 = v68["func"], v68["args"]
-	v3(v69)
-	for v71, v72 in _ENV["ipairs"](v70) do
-		v3(v72)
+v36[ "FunctionCallStat" ] = function(v72)
+	local v73, v74 = v72["func"], v72["args"]
+	v3(v73)
+	for v75, v76 in _ENV["ipairs"](v74) do
+		v3(v76)
 	end
-	v37(v68["outEdge"])
+	v37(v72["outEdge"])
 end
-v36[ "MethodCallStat" ] = function(v73)
-	local v74, v75 = v73["receiver"], v73["args"]
-	v3(v74)
-	for v76, v77 in _ENV["ipairs"](v75) do
-		v3(v77)
+v36[ "MethodCallStat" ] = function(v77)
+	local v78, v79 = v77["receiver"], v77["args"]
+	v3(v78)
+	for v80, v81 in _ENV["ipairs"](v79) do
+		v3(v81)
 	end
-	v37(v73["outEdge"])
+	v37(v77["outEdge"])
 end
-v36[ "Break" ] = function(v78)
-	v37(v78["outEdge"])
+v36[ "Break" ] = function(v82)
+	v37(v82["outEdge"])
 end
-v36[ "Return" ] = function(v79)
-	local v80 = v79["exps"]
-	if v80 then
-		for v81, v82 in _ENV["ipairs"](v80) do
-			v3(v82)
+v36[ "Return" ] = function(v83)
+	local v84 = v83["exps"]
+	if v84 then
+		for v85, v86 in _ENV["ipairs"](v84) do
+			v3(v86)
 		end
 	end
 end
 v36[ "EndNode" ] = function()
 end
-local v83
-v83 = function(v84, v85)
-	v37(v84)
-	for v86, v87 in _ENV["ipairs"](v85) do
-		v37(v87)
+local v87
+v87 = function(v88, v89)
+	v37(v88)
+	for v90, v91 in _ENV["ipairs"](v89) do
+		v37(v91)
 	end
 end
-return v83
+return v87

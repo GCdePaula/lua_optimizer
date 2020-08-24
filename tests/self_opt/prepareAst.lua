@@ -168,153 +168,178 @@ v29[ "GenericFor" ] = function(v86, v87, v88, v89)
 	v88:endBlock(v93)
 	return v102
 end
-v29[ "While" ] = function(v103, v104, v105, v106)
-	local v107, v108 = v103["condition"], v103["body"]
+v29[ "NumericFor" ] = function(v103, v104, v105, v106)
+	local v107, v108, v109, v110, v111 = v103["var"], v103["init"], v103["limit"], v103["step"], v103["body"]
+	local v112 = v105:startBlock()
 	v106:startLoop()
-	v35(v107, v105)
+	v35(v108, v105)
+	v35(v109, v105)
+	if v110 then
+		v35(v109, v105)
+	end
 	v103[ "inCell" ] = v105:newLatticeCell()
+	local v113 = v105:newLocalVar(v107["name"])
+	v9(v107, v113)
 	v103[ "outCell" ] = v105:newLatticeCell()
-	local v109, v110 = v2:InitWithFromNode(v103), v2:InitWithFromNode(v103)
-	v103[ "trueEdge" ] = v109
-	v103[ "falseEdge" ] = v110
-	local v111 = v30(v108, { v109 }, v105, v106)
-	v4(v104, v111)
+	local v114, v115 = v2:InitWithFromNode(v103), v2:InitWithFromNode(v103)
+	v103[ "loopEdge" ] = v114
+	v103[ "continueEdge" ] = v115
+	local v116 = v38(v111["statements"], { v114 }, v105, v106)
+	v4(v104, v116)
 	v15(v104, v103)
 	v103[ "inEdges" ] = v104
-	local v112 = v106:endLoop()
-	_ENV["table"]["insert"](v112, v110)
-	return v112
+	local v117 = v106:endLoop()
+	_ENV["table"]["insert"](v117, v115)
+	v105:endBlock(v112)
+	return v117
 end
-v29[ "Repeat" ] = function(v113, v114, v115, v116)
-	local v117, v118 = v113["condition"], v113["body"]
-	v116:startLoop()
-	v35(v117, v115)
-	v113[ "inCell" ] = v115:newLatticeCell()
-	v113[ "outCell" ] = v115:newLatticeCell()
-	local v119, v120 = v2:InitWithFromNode(v113), v2:InitWithFromNode(v113)
-	v113[ "repeatEdge" ] = v119
-	v113[ "continueEdge" ] = v120
-	_ENV["table"]["insert"](v114, v119)
-	local v121 = v30(v118, v114, v115, v116)
-	v15(v121, v113)
-	v113[ "inEdges" ] = v121
-	local v122 = v116:endLoop()
-	_ENV["table"]["insert"](v122, v120)
-	return v122
+v29[ "While" ] = function(v118, v119, v120, v121)
+	local v122, v123 = v118["condition"], v118["body"]
+	v121:startLoop()
+	v35(v122, v120)
+	v118[ "inCell" ] = v120:newLatticeCell()
+	v118[ "outCell" ] = v120:newLatticeCell()
+	local v124, v125 = v2:InitWithFromNode(v118), v2:InitWithFromNode(v118)
+	v118[ "trueEdge" ] = v124
+	v118[ "falseEdge" ] = v125
+	local v126 = v30(v123, { v124 }, v120, v121)
+	v4(v119, v126)
+	v15(v119, v118)
+	v118[ "inEdges" ] = v119
+	local v127 = v121:endLoop()
+	_ENV["table"]["insert"](v127, v125)
+	return v127
 end
-v29[ "IfStatement" ] = function(v123, v124, v125, v126)
-	local v127, v128, v129 = v123["condition"], v123["thenBody"], v123["elseBody"]
-	v15(v124, v123)
-	v123[ "inEdges" ] = v124
-	v35(v127, v125)
-	v123[ "inCell" ] = v125:newLatticeCell()
-	v123[ "outCell" ] = v125:newLatticeCell()
-	local v130, v131 = v2:InitWithFromNode(v123), v2:InitWithFromNode(v123)
-	v123[ "thenEdge" ], v123[ "elseEdge" ] = v130, v131
-	local v132 = v30(v128, { v130 }, v125, v126)
-	if v129 then
-		local v133 = v30(v129, { v131 }, v125, v126)
-		v4(v132, v133)
+v29[ "Repeat" ] = function(v128, v129, v130, v131)
+	local v132, v133 = v128["condition"], v128["body"]
+	v131:startLoop()
+	v35(v132, v130)
+	v128[ "inCell" ] = v130:newLatticeCell()
+	v128[ "outCell" ] = v130:newLatticeCell()
+	local v134, v135 = v2:InitWithFromNode(v128), v2:InitWithFromNode(v128)
+	v128[ "repeatEdge" ] = v134
+	v128[ "continueEdge" ] = v135
+	_ENV["table"]["insert"](v129, v134)
+	local v136 = v30(v133, v129, v130, v131)
+	v15(v136, v128)
+	v128[ "inEdges" ] = v136
+	local v137 = v131:endLoop()
+	_ENV["table"]["insert"](v137, v135)
+	return v137
+end
+v29[ "IfStatement" ] = function(v138, v139, v140, v141)
+	local v142, v143, v144 = v138["condition"], v138["thenBody"], v138["elseBody"]
+	v15(v139, v138)
+	v138[ "inEdges" ] = v139
+	v35(v142, v140)
+	v138[ "inCell" ] = v140:newLatticeCell()
+	v138[ "outCell" ] = v140:newLatticeCell()
+	local v145, v146 = v2:InitWithFromNode(v138), v2:InitWithFromNode(v138)
+	v138[ "thenEdge" ], v138[ "elseEdge" ] = v145, v146
+	local v147 = v30(v143, { v145 }, v140, v141)
+	if v144 then
+		local v148 = v30(v144, { v146 }, v140, v141)
+		v4(v147, v148)
 	else
-		_ENV["table"]["insert"](v132, v131)
+		_ENV["table"]["insert"](v147, v146)
 	end
-	return v132
+	return v147
 end
-v29[ "LocalAssign" ] = function(v134, v135, v136)
-	v15(v135, v134)
-	v134[ "inEdges" ] = v135
-	local v137 = v2:InitWithFromNode(v134)
-	v134[ "outEdge" ] = v137
-	for v138, v139 in _ENV["ipairs"](v134["exps"]) do
-		v35(v139, v136)
+v29[ "LocalAssign" ] = function(v149, v150, v151)
+	v15(v150, v149)
+	v149[ "inEdges" ] = v150
+	local v152 = v2:InitWithFromNode(v149)
+	v149[ "outEdge" ] = v152
+	for v153, v154 in _ENV["ipairs"](v149["exps"]) do
+		v35(v154, v151)
 	end
-	v134[ "inCell" ] = v136:newLatticeCell()
-	for v140, v141 in _ENV["ipairs"](v134["vars"]) do
-		local v142 = v136:newLocalVar(v141["name"])
-		v9(v141, v142)
+	v149[ "inCell" ] = v151:newLatticeCell()
+	for v155, v156 in _ENV["ipairs"](v149["vars"]) do
+		local v157 = v151:newLocalVar(v156["name"])
+		v9(v156, v157)
 	end
-	v134[ "outCell" ] = v136:newLatticeCell()
-	return { v137 }
+	v149[ "outCell" ] = v151:newLatticeCell()
+	return { v152 }
 end
-v29[ "Assign" ] = function(v143, v144, v145)
-	v15(v144, v143)
-	v143[ "inEdges" ] = v144
-	local v146 = v2:InitWithFromNode(v143)
-	v143[ "outEdge" ] = v146
-	for v147, v148 in _ENV["ipairs"](v143["vars"]) do
-		if (v148["tag"] == "Var") then
-			local v149 = v145:getVar(v148["name"])
-			v9(v148, v149)
+v29[ "Assign" ] = function(v158, v159, v160)
+	v15(v159, v158)
+	v158[ "inEdges" ] = v159
+	local v161 = v2:InitWithFromNode(v158)
+	v158[ "outEdge" ] = v161
+	for v162, v163 in _ENV["ipairs"](v158["vars"]) do
+		if (v163["tag"] == "Var") then
+			local v164 = v160:getVar(v163["name"])
+			v9(v163, v164)
 		else
-			local v150 = v148["index"]
-			local v151 = v148["exp"]
-			v35(v150, v145)
-			v35(v151, v145)
+			local v165 = v163["index"]
+			local v166 = v163["exp"]
+			v35(v165, v160)
+			v35(v166, v160)
 		end
 	end
-	for v152, v153 in _ENV["ipairs"](v143["exps"]) do
-		v35(v153, v145)
+	for v167, v168 in _ENV["ipairs"](v158["exps"]) do
+		v35(v168, v160)
 	end
-	v143[ "inCell" ] = v145:newLatticeCell()
-	v143[ "outCell" ] = v145:newLatticeCell()
-	return { v146 }
-end
-local v154
-v154 = function(v155, v156, v157, v158)
-	v15(v156, v155)
-	v155[ "inEdges" ] = v156
-	v35(v158, v157)
-	for v159, v160 in _ENV["ipairs"](v155["args"]) do
-		v35(v160, v157)
-	end
-	v155[ "inCell" ] = v157:newLatticeCell()
-	v155[ "outCell" ] = v157:newLatticeCell()
-	local v161 = v2:InitWithFromNode(v155)
-	v155[ "outEdge" ] = v161
+	v158[ "inCell" ] = v160:newLatticeCell()
+	v158[ "outCell" ] = v160:newLatticeCell()
 	return { v161 }
 end
-v29[ "FunctionCallStat" ] = function(v162, v163, v164)
-	return v154(v162, v163, v164, v162["func"])
+local v169
+v169 = function(v170, v171, v172, v173)
+	v15(v171, v170)
+	v170[ "inEdges" ] = v171
+	v35(v173, v172)
+	for v174, v175 in _ENV["ipairs"](v170["args"]) do
+		v35(v175, v172)
+	end
+	v170[ "inCell" ] = v172:newLatticeCell()
+	v170[ "outCell" ] = v172:newLatticeCell()
+	local v176 = v2:InitWithFromNode(v170)
+	v170[ "outEdge" ] = v176
+	return { v176 }
 end
-v29[ "MethodCallStat" ] = function(v165, v166, v167)
-	return v154(v165, v166, v167, v165["receiver"])
+v29[ "FunctionCallStat" ] = function(v177, v178, v179)
+	return v169(v177, v178, v179, v177["func"])
 end
-v29[ "Break" ] = function(v168, v169, v170, v171)
-	v15(v169, v168)
-	v168[ "inEdges" ] = v169
-	v168[ "inCell" ] = v170:newLatticeCell()
-	local v172 = v2:InitWithFromNode(v168)
-	v168[ "outEdge" ] = v172
-	v171:pushBreakEdge(v172)
+v29[ "MethodCallStat" ] = function(v180, v181, v182)
+	return v169(v180, v181, v182, v180["receiver"])
+end
+v29[ "Break" ] = function(v183, v184, v185, v186)
+	v15(v184, v183)
+	v183[ "inEdges" ] = v184
+	v183[ "inCell" ] = v185:newLatticeCell()
+	local v187 = v2:InitWithFromNode(v183)
+	v183[ "outEdge" ] = v187
+	v186:pushBreakEdge(v187)
 	return {  }
 end
-v29[ "Return" ] = function(v173, v174, v175)
-	v15(v174, v173)
-	v173[ "inEdges" ] = v174
-	v173[ "inCell" ] = v175:newLatticeCell()
-	local v176 = v173["exps"]
-	if v176 then
-		for v177, v178 in _ENV["ipairs"](v176) do
-			v35(v178, v175)
+v29[ "Return" ] = function(v188, v189, v190)
+	v15(v189, v188)
+	v188[ "inEdges" ] = v189
+	v188[ "inCell" ] = v190:newLatticeCell()
+	local v191 = v188["exps"]
+	if v191 then
+		for v192, v193 in _ENV["ipairs"](v191) do
+			v35(v193, v190)
 		end
 	end
-	v173[ "outEdge" ] = false
+	v188[ "outEdge" ] = false
 	return {  }
 end
-v29[ "Nop" ] = function(v179, v180)
-	return v180
+v29[ "Nop" ] = function(v194, v195)
+	return v195
 end
-return function(v181)
-	local v182 = v3:Init()
-	local v183 = v20()
-	local v184 = v2:InitStartEdge()
-	local v185 = v38(v181["statements"], { v184 }, v182, v183)
-	local v186 = { tag = "EndNode", inEdges = v185 }
-	v15(v185, v186)
-	local v187 = v182:getFuncs()
-	local v188 = {  }
-	for v189, v190 in _ENV["ipairs"](v187) do
-		_ENV["table"]["insert"](v188, v190:getStartEdge())
+return function(v196)
+	local v197 = v3:Init()
+	local v198 = v20()
+	local v199 = v2:InitStartEdge()
+	local v200 = v38(v196["statements"], { v199 }, v197, v198)
+	local v201 = { tag = "EndNode", inEdges = v200 }
+	v15(v200, v201)
+	local v202 = v197:getFuncs()
+	local v203 = {  }
+	for v204, v205 in _ENV["ipairs"](v202) do
+		_ENV["table"]["insert"](v203, v205:getStartEdge())
 	end
-	return v184, v188
+	return v199, v203
 end

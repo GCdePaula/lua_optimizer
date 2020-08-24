@@ -219,96 +219,111 @@ v63[ "GenericFor" ] = function(v107, v108)
 	v108:addEdge(v111)
 	v108:addEdge(v112)
 end
-v63[ "While" ] = function(v118, v119)
-	local v120 = v118["condition"]
-	local v121, v122 = v118["trueEdge"], v118["falseEdge"]
-	local v123 = v118["inCell"]:copy()
-	local v124 = v10(v120, v123)
-	v118[ "outCell" ] = v123
-	local v125, v126 = v124:test()
-	if v125 then
-		if v126 then
-			v119:addEdge(v121)
-		else
-			v119:addEdge(v122)
-		end
-	else
-		v119:addEdge(v121)
-		v119:addEdge(v122)
+v63[ "NumericFor" ] = function(v118, v119)
+	local v120, v121, v122, v123 = v118["var"], v118["init"], v118["limit"], v118["step"]
+	local v124, v125 = v118["loopEdge"], v118["continueEdge"]
+	local v126 = v118["inCell"]:copy()
+	v10(v121, v126)
+	v10(v122, v126)
+	if v123 then
+		v10(v123, v126)
 	end
+	v126:addVar(v120["name"])
+	v126:setElementToVar(v120["name"], v1:InitWithBottom())
+	v118[ "outCell" ] = v126
+	v119:addEdge(v124)
+	v119:addEdge(v125)
 end
-v63[ "Repeat" ] = function(v127, v128)
+v63[ "While" ] = function(v127, v128)
 	local v129 = v127["condition"]
-	local v130, v131 = v127["repeatEdge"], v127["continueEdge"]
+	local v130, v131 = v127["trueEdge"], v127["falseEdge"]
 	local v132 = v127["inCell"]:copy()
 	local v133 = v10(v129, v132)
 	v127[ "outCell" ] = v132
 	local v134, v135 = v133:test()
 	if v134 then
 		if v135 then
-			v128:addEdge(v131)
-		else
 			v128:addEdge(v130)
+		else
+			v128:addEdge(v131)
 		end
 	else
-		v128:addEdge(v131)
 		v128:addEdge(v130)
+		v128:addEdge(v131)
 	end
 end
-local v136
-v136 = function(v137, v138, v139)
-	local v140 = v137["args"]
-	local v141 = v137["inCell"]:copy()
-	v10(v139, v141)
-	for v142, v143 in _ENV["ipairs"](v140) do
-		v10(v143, v141)
+v63[ "Repeat" ] = function(v136, v137)
+	local v138 = v136["condition"]
+	local v139, v140 = v136["repeatEdge"], v136["continueEdge"]
+	local v141 = v136["inCell"]:copy()
+	local v142 = v10(v138, v141)
+	v136[ "outCell" ] = v141
+	local v143, v144 = v142:test()
+	if v143 then
+		if v144 then
+			v137:addEdge(v140)
+		else
+			v137:addEdge(v139)
+		end
+	else
+		v137:addEdge(v140)
+		v137:addEdge(v139)
 	end
-	v137[ "outCell" ] = v141
-	v138:addEdge(v137["outEdge"])
 end
-v63[ "FunctionCallStat" ] = function(v144, v145)
-	v136(v144, v145, v144["func"])
+local v145
+v145 = function(v146, v147, v148)
+	local v149 = v146["args"]
+	local v150 = v146["inCell"]:copy()
+	v10(v148, v150)
+	for v151, v152 in _ENV["ipairs"](v149) do
+		v10(v152, v150)
+	end
+	v146[ "outCell" ] = v150
+	v147:addEdge(v146["outEdge"])
 end
-v63[ "MethodCallStat" ] = function(v146, v147)
-	v136(v146, v147, v146["receiver"])
+v63[ "FunctionCallStat" ] = function(v153, v154)
+	v145(v153, v154, v153["func"])
 end
-v63[ "Break" ] = function(v148, v149)
-	local v150 = v148["outEdge"]
-	v149:addEdge(v150)
+v63[ "MethodCallStat" ] = function(v155, v156)
+	v145(v155, v156, v155["receiver"])
 end
-v63[ "Return" ] = function(v151)
-	local v152 = v151["inCell"]:copy()
-	local v153 = v151["exps"]
-	if v153 then
-		for v154, v155 in _ENV["ipairs"](v153) do
-			v10(v155, v152)
+v63[ "Break" ] = function(v157, v158)
+	local v159 = v157["outEdge"]
+	v158:addEdge(v159)
+end
+v63[ "Return" ] = function(v160)
+	local v161 = v160["inCell"]:copy()
+	local v162 = v160["exps"]
+	if v162 then
+		for v163, v164 in _ENV["ipairs"](v162) do
+			v10(v164, v161)
 		end
 	end
-	v151[ "outCell" ] = v152
+	v160[ "outCell" ] = v161
 end
 v63[ "EndNode" ] = function()
 end
 v63[ "Block" ] = function()
 	_ENV["error"]("process block!")
 end
-local v156
-v156 = function(v157)
-	local v158 = v4()
-	local v159 = v157
-	v157:setExecutable()
+local v165
+v165 = function(v166)
+	local v167 = v4()
+	local v168 = v166
+	v166:setExecutable()
 	repeat
-		local v160 = v159:getToNode()
-		v64(v160, v158)
-		v159 = v158:pop()
-	until (not v159)
+		local v169 = v168:getToNode()
+		v64(v169, v167)
+		v168 = v167:pop()
+	until (not v168)
 end
-return function(v161, v162)
-	v156(v161)
-	for v163, v164 in _ENV["ipairs"](v162) do
-		local v165 = v164:getToNode()["inCell"]
-		if v165 then
-			v165:bottomAllVars()
-			v156(v164)
+return function(v170, v171)
+	v165(v170)
+	for v172, v173 in _ENV["ipairs"](v171) do
+		local v174 = v173:getToNode()["inCell"]
+		if v174 then
+			v174:bottomAllVars()
+			v165(v173)
 		end
 	end
 end
