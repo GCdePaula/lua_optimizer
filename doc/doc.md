@@ -59,6 +59,42 @@ There are a few subtleties in this example, however. We need to revise a few con
 
 ## Lattice
 
+A lattice is a _partially ordered set_ (poset) in which every two elements have a _meet_ and a _join_ [4].
+We'll explain what each of those terms mean.
+
+Informally, _a partially ordered set_ is a set together with a binary relation (≤) indicating that, for certain pairs of elements of the set, one of the elements precedes the other [6].
+The word "partial", opposed to total, means that this relation doesn't necessarily exist for every pair of elements.
+
+To understand the concepts of _meet_ (denoted by the symbol ∧, and is also known as an infimum or greatest lower bound) and _join_ (denoted by the symbol ∨, and is also known as a supremum or least upper bound) we need to define the _lower bound_ and the _upper bound_ of two elements in a poset [2]\[3].
+Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A`:
+  * The element `z` is a _lower bound_ of the pair `x` and `y` if `z ≤ x` and `z ≤ y`.
+
+  * Similarly, `z` is an _upper bound_ of the pair `x` and `y` if `x ≤ z` and `y ≤ z`.
+
+With these two definitions, we can define _meet_ and _join_ of a poset [2]\[3].
+Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A`:
+  * The element `z` is the _meet_ of the pair `x` and `y` if it satisfies two conditions: `z` is a lower bound of `x` and `y`, and `z` is greater than or equal to any other lower bound of `x` and `y`.
+
+  * The element `z` is the _join_ of the pair `x` and `y` if it satisfies two conditions: `z` is a upper bound of `x` and `y`, and `z` is less than or equal to any other upper bound of `x` and `y`.
+
+_Meet_ and _join_ are associative, commutative and idempotent:
+  * x ∧ (y ∧ z) = (x ∧ y) ∧ z
+  * x ∧ y = y ∧ x
+  * x ∧ x = x
+
+For our analysis, we'll use a simple bounded lattice, which has a greatest element and a least element. There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
+
+The abstract interpretation algorithm associates a lattice element to every variable at each point in the program. This mapping represents some knowledge about the value of each variable, where each element have the following meaning:
+
+  * Top means the variable is undefined. The variable has no value at that point.
+  * At the middle, the elements each represent a different value. That is, a variable with an element of this kind is a constant with a known value.
+  * Bottom means the variable is not constant (or that it cannot be guaranteed to be constant).
+
+We could also use a more complex lattice. For instance, we could use a lattice where types are also added (e.g. the meet of two different numbers is not Bottom, but an element that represents the number type), or "truthy" and "falsy" elements (e.g. the meet between numbers, strings and true is "truthy", the meet between nil and false is "falsy"). Though these changes would increase the depth of our lattice, the lattice would still remain bounded, and might provide more information for our optimizations.
+
+
+
+
 -- definir o que é lower bound e upper bound.
 -- Lembrar o que é uma orderm parcial. Dizer que lattice ';e um aordem parcial. Relembrando, OP é ...
 
@@ -113,7 +149,7 @@ We can map each set of concrete values to a lattice element, through what is cal
 This abstraction function transforms a value from the concrete set to the abstract set, which is out lattice.
 For our lattice, the set `{1}` abstracts to the lattice element `1`, the set `{1, 2, 3, 4}` abstracts to Bottom, and the set `{5}` abstracts to the lattice element `5`.
 
-A lattice element assigned to `x` is valid if that element is less or equal than the abstraction of `x`.
+A lattice element assigned to `x` at some point of the program is valid if that element is less or equal than the abstraction of `x`.
 In other words, at each point of the program, our analysis can only assign a lower or equal lattice element to `x` than its abstraction.
 If `x` abstracts to Bottom, our analysis must assign Bottom to `x`.
 If `x` abstracts to a constant, must either assign that constant or Bottom to `x`.
@@ -123,9 +159,9 @@ However, our analysis wouldn't be very useful if it did that.
 We want to find the greatest valid lattice element for every variable at every point in the program, because it gives us more information.
 That information is then used for constant propagation and unreachable code elimination. More on that later.
 
-To that end, our analysis starts by assuming every variable is undefined (Top) everywhere, and that every statement is unreachable.
+To that end, our analysis starts by initializing every variable to Top everywhere, and that every statement is unreachable.
 This configuration is invalid for most programs.
-Through abstract interpretation, we may find out this assumption was incorrect and need to fall back into a more conservative truth, lowering lattice elements and marking statements as reachable until we reach a stable configuration.
+Through abstract interpretation, we may find out those values were incorrect and need to fall back into a more conservative truth, lowering lattice elements and marking statements as reachable until we reach a stable configuration.
 
 That stable configuration is a fixed point. We don't start in a fixed point, we reach it by lowering lattice elements.
 If the algorithm is stopped prematurely, the found configuration might be invalid.
@@ -347,3 +383,4 @@ Once this is done, we output the optimized Lua code.
 
 [5] Click, Cliff & Cooper, Keith. (2000). Combining Analyses, Combining Optimizations. ACM Transactions on Programming Languages and Systems. 17. 10.1145/201059.201061.
 
+[6] https://en.wikipedia.org/wiki/Partially_ordered_set
