@@ -62,7 +62,7 @@ There are a few subtleties in this example, however. We need to revise a few con
 A lattice is a _partially ordered set_ (poset) in which every two elements have a _meet_ and a _join_ [4].
 We'll explain what each of those terms mean.
 
-Informally, _a partially ordered set_ is a set together with a binary relation (≤) indicating that, for certain pairs of elements of the set, one of the elements precedes the other [6].
+Informally, a _partially ordered set_ is a set together with a binary relation (≤) indicating that, for certain pairs of elements of the set, one of the elements precedes the other [6].
 The word "partial", opposed to total, means that this relation doesn't necessarily exist for every pair of elements.
 
 To understand the concepts of _meet_ (denoted by the symbol ∧, and is also known as an infimum or greatest lower bound) and _join_ (denoted by the symbol ∨, and is also known as a supremum or least upper bound) we need to define the _lower bound_ and the _upper bound_ of two elements in a poset [2]\[3].
@@ -84,7 +84,7 @@ _Meet_ and _join_ are associative, commutative and idempotent:
 
 For our analysis, we'll use a simple bounded lattice, which has a greatest element and a least element. There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
 
-The most relevant operation between elements for our analysis is the meet operation, with the following rules:
+The most relevant operation between elements for our analysis is the _meet_ operation, with the following rules. Here, C<sub>i</sub> and C<sub>j</sub> are some middle element:
   * any ∧ Top = any
   * any ∧ Bottom = Bottom
   * C<sub>i</sub> ∧ C<sub>j</sub> = C<sub>i</sub> if i = j
@@ -96,7 +96,7 @@ The abstract interpretation algorithm associates a lattice element to every vari
   * At the middle, the elements each represent a different value. That is, a variable with an element of this kind is a constant with a known value.
   * Bottom means the variable is not constant (or that it cannot be guaranteed to be constant).
 
-We could also use a more complex lattice. For instance, we could use a lattice where types are also added (e.g. the meet of two different numbers is not Bottom, but an element that represents the number type), or "truthy" and "falsy" elements (e.g. the meet between numbers, strings and true is "truthy", the meet between nil and false is "falsy"). Though these changes would increase the depth of our lattice, the lattice would still remain bounded, and might provide more information for our optimizations.
+We could also use a more complex lattice. For instance, we could use a lattice where types are also added (e.g. the _meet_ of two different numbers is not Bottom, but an element that represents the number type), or "truthy" and "falsy" elements (e.g. the _meet_ between numbers, strings and true is "truthy", the _meet_ between nil and false is "falsy"). Though these changes would increase the depth of our lattice, the lattice would still remain bounded, and might provide more information for our optimizations.
 
 
 ## Fixed Point
@@ -174,22 +174,22 @@ Every statement contains a before state and an after state. The program state is
 
 After the second statement, we know that `x` and `y` have the lattice element `0`. When we get to the loop, we don't know from which edge the program reached that point.
 
-The abstract interpretation performs the meet between all variables of all incident states, and continues with the updated state.
+The abstract interpretation performs the _meet_ between all variables of all incident states, and continues with the updated state.
 
-Let's start with `x`. On the first iteration, we perform the meet between the element of `x` coming from the preceding assignment (`0`) and the element of `x` coming from the back edge (Top, as the analysis hasn't reached that point yet). Meet between Top and `0` is `0`, so we continue our analysis with `x` being `0`. We may find out that is not true later in the analysis.
+Let's start with `x`. On the first iteration, we perform the _meet_ between the element of `x` coming from the preceding assignment (`0`) and the element of `x` coming from the back edge (Top, as the analysis hasn't reached that point yet). _meet_ between Top and `0` is `0`, so we continue our analysis with `x` being `0`. We may find out that is not true later in the analysis.
 
-After that first statement, `x` has the lattice element `1` because we assign the value `1` to `x`. When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body. Back at the top, we perform the meet operator again. Now the lattice element of `x` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
+After that first statement, `x` has the lattice element `1` because we assign the value `1` to `x`. When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body. Back at the top, we perform the _meet_ operator again. Now the lattice element of `x` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
 
-The meet operator between the elements `0` and `1` is Bottom. As such, we conclude `x` is not constant at the loop's top.
+The _meet_ operator between the elements `0` and `1` is Bottom. As such, we conclude `x` is not constant at the loop's top.
 However, after the first assignment, `x` goes back to having a single possible value. So, after the assignment, `x` is constant.
 
-Now, let's analyse `y`. On the first iteration, we perform the meet between the element of `y` coming from the preceding assignment (`0`) and the element of `y` coming from the back edge (Top, as the analysis hasn't reached that point yet). Meet between Top and `0` is `0`, so we continue our analysis with `y` being `0`. We may find out that is not true later in the analysis.
+Now, let's analyse `y`. On the first iteration, we perform the _meet_ between the element of `y` coming from the preceding assignment (`0`) and the element of `y` coming from the back edge (Top, as the analysis hasn't reached that point yet). _meet_ between Top and `0` is `0`, so we continue our analysis with `y` being `0`. We may find out that is not true later in the analysis.
 
 After second statement, `y` has the lattice element `1`, because the expression `y + 1` evaluates to `1`, as discussed in the previous section.
 When we reach the bottom, as the condition evaluates to false, we need to follow the edge that goes back to the loop's top and repeat the loop's body.
- Back at the top, we perform the meet operator again. Now the lattice element of `y` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
+ Back at the top, we perform the _meet_ operator again. Now the lattice element of `y` can be `0` (if it came from outside the loop) or `1` (if it came from the back edge).
 
-The meet operator between the elements `0` and `1` is Bottom.
+The _meet_ operator between the elements `0` and `1` is Bottom.
 As such, we conclude `y` is not constant.
 At the second assignment statement, the expression `y + 1` evaluates to Bottom, because (at that point) `y` equals Bottom.
 So we assign Bottom to `y`, concluding that after that statement `y` is also Bottom, and as such is not constant.
@@ -205,12 +205,12 @@ repeat
 until condition
 ```
 
-After the first line, `x` has the lattice element `1`. When we enter the loop's body, we perform the meet between the two possible elements of `x`: `1` from the previous assignment, and Top from the back edge. Meet between `1` and Top is `1`, so we continue with `x` equals `1`, which we may later find to be incorrect. Inside the loop's body, after the assignment statement, `x` has the lattice element `1`, because the expression `x - 1` is `1`.
+After the first line, `x` has the lattice element `1`. When we enter the loop's body, we perform the _meet_ between the two possible elements of `x`: `1` from the previous assignment, and Top from the back edge. _meet_ between `1` and Top is `1`, so we continue with `x` equals `1`, which we may later find to be incorrect. Inside the loop's body, after the assignment statement, `x` has the lattice element `1`, because the expression `x - 1` is `1`.
 As we don't know the value of `condition`, we have to conservatively assume the loop will execute multiple times.
 
 Back at the top, `x` has two possible elements associated with it: the one coming from outside, and another from the back edge.
-We perform the meet operator between the two. That is, `1` meet `1`.
-Differently from the previous example, the meet result is `1`, as the meet between two constants, if they are the same, is their common value.
+We perform the _meet_ operator between the two. That is, `1` _meet_ `1`.
+Differently from the previous example, the _meet_ result is `1`, as the _meet_ between two constants, if they are the same, is their common value.
 As such, we conclude `x` is constant with the lattice element `1` throughout the loop's execution.
 
 
@@ -226,13 +226,11 @@ As such, to each pair point and variable there's a lattice element.
 
 The abstract interpretation works by scheduling edges and executing the node those edges point to. We use a simple iterative worklist technique, containing CFG edges that need be processed. We start with an empty worklist, marking all edges as dead, and setting all variables in all cells to Top.
 
--- Rename executable to "alive" and "dead"
-
 The first step of the abstract interpretation is marking the start edge as alive, and adding it to the previously empty worklist. Then we enter a loop: while the worklist is not empty, we remove an edge from the list and execute the node it is pointing to. During the execution of a node, we schedule new edges to be processed, marking them as alive in the process.
 
 Executing a node involves a few steps:
 
-  1. Calculate the new "in cell" from all alive incident edges. The algorithm gets all preceding nodes whose edges are traversable, and performs the meet operation between their "out cells". In other words, for all alive in edges, we get the "out cell" of the node they're from, and for each variable of those cells we perform the meet operation between their lattice elements.
+  1. Calculate the new "in cell" from all alive incident edges. The algorithm gets all preceding nodes whose edges are traversable, and performs the _meet_ operation between their "out cells". In other words, for all alive in edges, we get the "out cell" of the node they're from, and for each variable of those cells we perform the _meet_ operation between their lattice elements.
 
   2. If the node hasn't been executed before, mark the node as executed and skip to step 3.
 
@@ -257,7 +255,7 @@ When there are no more edges in the work list, the abstract interpretation is do
 
 ## Edges vs Nodes
 
-In our method we schedule edges, rather than nodes. A different approach could, instead, associate the dead or alive flag to nodes. However, this is not optimal, as we can find more constants scheduling edges. The reason is that two nodes may be alive and there may be an edge between them, but that edge may not be traversable. This would result in an unnecessary meet operation that could potentially set bottom to a constant variable. Let's look at a modified example from Wegman and Zadeck [1]:
+In our method we schedule edges, rather than nodes. A different approach could, instead, associate the dead or alive flag to nodes. However, this is not optimal, as we can find more constants scheduling edges. The reason is that two nodes may be alive and there may be an edge between them, but that edge may not be traversable. This would result in an unnecessary _meet_ operation that could potentially set bottom to a constant variable. Let's look at a modified example from Wegman and Zadeck [1]:
 ```
 i = 1
 while true do
@@ -271,9 +269,9 @@ print(i)
 
 Here, the edge exiting the `while` node is not traversable, as its condition is always true. The only way to reach the `print` statement is through the break inside the loop.
 
-If we schedule edges, at the `print` statement the only alive in edge is the one coming from inside the `if` statement. The meet between all its traversable in edges (in this case there's only one) will yield that `i` is a constant with value `10`, because that's the only possible value for `x` inside the `if`.
+If we schedule edges, at the `print` statement the only alive in edge is the one coming from inside the `if` statement. The _meet_ between all its traversable in edges (in this case there's only one) will yield that `i` is a constant with value `10`, because that's the only possible value for `x` inside the `if`.
 
-However, if we associate the dead or alive flag to the nodes, the meet operation between all previous alive nodes would include the `while` body. We would do the meet between Bottom (which is the lattice element associated with `x` at the loop's end) and `10` (which is the lattice element associated with `x` at the end of the `if` node). So we would conclude that `i` is not constant.
+However, if we associate the dead or alive flag to the nodes, the _meet_ operation between all previous alive nodes would include the `while` body. We would do the _meet_ between Bottom (which is the lattice element associated with `x` at the loop's end) and `10` (which is the lattice element associated with `x` at the end of the `if` node). So we would conclude that `i` is not constant.
 
 
 ## Constant Propagation and Unreachable Code Elimination
