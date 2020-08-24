@@ -84,6 +84,12 @@ _Meet_ and _join_ are associative, commutative and idempotent:
 
 For our analysis, we'll use a simple bounded lattice, which has a greatest element and a least element. There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
 
+The most relevant operation between elements for our analysis is the meet operation, with the following rules:
+  * any ∧ Top = any
+  * any ∧ Bottom = Bottom
+  * C<sub>i</sub> ∧ C<sub>j</sub> = C<sub>i</sub> if i = j
+  * C<sub>i</sub> ∧ C<sub>j</sub> = Bottom if i ≠ j
+
 The abstract interpretation algorithm associates a lattice element to every variable at each point in the program. This mapping represents some knowledge about the value of each variable, where each element have the following meaning:
 
   * Top means the variable is undefined. The variable has no value at that point.
@@ -92,41 +98,6 @@ The abstract interpretation algorithm associates a lattice element to every vari
 
 We could also use a more complex lattice. For instance, we could use a lattice where types are also added (e.g. the meet of two different numbers is not Bottom, but an element that represents the number type), or "truthy" and "falsy" elements (e.g. the meet between numbers, strings and true is "truthy", the meet between nil and false is "falsy"). Though these changes would increase the depth of our lattice, the lattice would still remain bounded, and might provide more information for our optimizations.
 
-
-
-
--- definir o que é lower bound e upper bound.
--- Lembrar o que é uma orderm parcial. Dizer que lattice ';e um aordem parcial. Relembrando, OP é ...
-
-First, let us define what is a meet (also known as an infimum or greatest lower bound) and join (also known as a supremum or least upper bound) of a partially ordered set `A` [2]\[3]. Let `A` be a set with a partial order, and `x`, `y` and `z` elements in `A`:
-
-  * The element `z` is the meet of the pair `x` and `y` if it satisfies two conditions: `z` is a lower bound of `x` and `y`, and `z` is greater than or equal to any other lower bound of `x` and `y`.
-
-  * The element `z` is the join of the pair `x` and `y` if it satisfies two conditions: `z` is a upper bound of `x` and `y`, and `z` is less than or equal to any other upper bound of `x` and `y`.
-
--- add proof of uniqueness
-
-A lattice is a partially ordered set in which every two elements have a meet and a join [4]. By the definitions above, it follows that the meet and join between any pair of elements is unique.
-
-We use a simple bounded lattice in our analysis, which has a greatest element and a least element. There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
-
--- explicar o que é meet de que aqui. Note that in this lattice meet between two middle elemetns is bottom
-
-The abstract interpretation algorithm associates a lattice element to every variable at each point in the program. This mapping represents some knowledge about the value of each variable, where each element have the following meaning:
-
-  * Top means the variable is undefined. The variable has no value at that point.
-  * At the middle, the elements each represent a different value. That is, a variable with an element of this kind is a constant with a known value.
-  * Bottom means the variable is not constant (or that it cannot be guaranteed to be constant).
-
--- Falar do simbolo e propriedade *antes*
-
-The most relevant operation between elements for our analysis is the meet operation, represented by the symbol $\sqcap$. It is associative and commutative, following three rules:
-
-// Vou colocar depois.
-
--- Adicionar a intuição das regras depois
-
-We could also use a more complex lattice. For instance, we could ... where types are also added (e.g. the meet of two different numbers is not Bottom, but an element that represents the number type), or "truthy" and "falsy" elements (e.g. the meet between numbers, strings and true is "truthy", the meet between nil and false is "falsy"). Though these changes would increase the depth of our lattice, the lattice would still remain bounded, and might provide more information for our optimizations.
 
 ## Fixed Point
 
