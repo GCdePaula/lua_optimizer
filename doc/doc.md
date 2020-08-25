@@ -237,11 +237,11 @@ Executing a node involves a few steps:
 
   3. Evaluate the node using the new "in cell" as its state, update the "out cell" with the changes from this computation, and schedule out edges. Scheduled edges are marked as alive. This step depends on the node type:
 
-      * Assignment nodes evaluate their expression, update the assigned variable's lattice element with the result of the evaluation and schedule its single out edge.
+      * Assignment nodes evaluate their expression, update the assigned variable's lattice element with the result of the evaluation and schedule their single out edge.
 
-      * Local assignment nodes evaluate their expression, add a variable to the scope, assign it the evaluated expression or `nil` if there are no expressions, and schedule its single out edge.
+      * Local assignment nodes evaluate their expression, add a variable to the scope, assign it the evaluated expression or `nil` if there are no expressions, and schedule their single out edge.
 
-      * If, while, and repeat until nodes evaluate their condition, and conditionally schedule its out edges. If the condition is a constant, only one branch needs to be scheduled. If it is Bottom, both must be conservatively scheduled, as its condition's value is unknown.
+      * If, while, and repeat until nodes evaluate their condition, and conditionally schedule its out edges. If the condition is a constant, only one branch needs to be scheduled. If the condition is Bottom, both edges must be conservatively scheduled, as the condition's value is unknown.
 
       * Generic and numeric for nodes add variables to the inner block's scope, setting their lattice element to Bottom. We then schedules both edges.
 
