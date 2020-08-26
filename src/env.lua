@@ -1,4 +1,5 @@
 local LatticeCell = require "lattice.cell"
+local Element = require "lattice.element"
 local Func = require "func"
 
 local Env = {}
@@ -12,7 +13,7 @@ type Env = {
 	-- Whenever a new block/scope is created we copy the
 	-- dictionary and return the old one to the caller.
 	-- It is the caller's responsibility to restore the old
-	-- dictionary whtn the block finishes.
+	-- dictionary when the block finishes.
 	vars: (string, string) dictionary
 
 	-- Previous env, used for closures. The env chain is
@@ -20,13 +21,14 @@ type Env = {
 	previousEnv: Env optional
 	sharedCounter: {value: Int}
 	currentFunc: Func
+	upvalueVars : {string}
 
 	funcs: [Func]
 }
 --]]
 
 function Env:Init(oldEnv, startEdge, node)
-	local newEnv = {_vars = {}}
+	local newEnv = {_vars = {}, upvalueVars = {}}
 
 	if oldEnv then
 		newEnv._previousEnv = oldEnv
@@ -78,7 +80,13 @@ end
 function Env:newLatticeCell()
 	--  It is essentially a snapshot of env, but
 	--  with Var instead of just names.
-	return LatticeCell:InitWithScope(self._vars)
+	local cell = LatticeCell:InitWithScope(self._vars)
+
+	for _,v in ipairs(self.upvalueVars) do
+		cell:setElementToVar(v, Element:InitWithBottom())
+	end
+
+	return cell
 end
 
 -- Adds a new local var to scope. Returns its new name.
@@ -94,16 +102,24 @@ function Env:addVararg()
 	self._vars['...'] = '...'
 end
 
-function Env:getVar(name)
+function Env:getVar(name, isUpvalue)
 	local newName = self._vars[name]
 	if newName then
+		if isUpvalue then
+			table.insert(self.upvalueVars, newName)
+		end
 		return newName
 	else
 		-- TODO: add upvalue to closure
 		local previousEnv = self._previousEnv
 		if previousEnv then
-			local upval = previousEnv:getVar(name)
+			local upval = previousEnv:getVar(name, true)
 			self._vars[name] = upval
+
+			if isUpvalue then
+				table.insert(self.upvalueVars, upval)
+			end
+
 			return upval
 		else
 			if name == '_ENV' then
