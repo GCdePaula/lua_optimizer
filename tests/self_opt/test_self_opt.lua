@@ -1,12 +1,12 @@
 package.path = package.path
-  ..";./self_opt/?.lua"
-  ..";./self_opt/libs/?.lua"
-  ..";./self_opt/libs/?/?.lua"
-  ..";./self_opt/libs/?/init.lua"
+  ..";./self_opt/files/?.lua"
+  ..";./self_opt/files/libs/?.lua"
+  ..";./self_opt/files/libs/?/?.lua"
+  ..";./self_opt/files/libs/?/init.lua"
 
 package.cpath = package.cpath
-  .."./self_opt/libs/?.so;"
-  .."./self_opt/libs/?/?.so;"
+  .."./self_opt/files/libs/?.so;"
+  .."./self_opt/files/libs/?/?.so;"
 
 
 
@@ -19,7 +19,7 @@ local function readFile(path)
 end
 
 	local path_to_src = "../src/"
-	local target_dir = "./self_opt/"
+	local target_dir = "self_opt/files/"
 	local paths = {
 		"abstractInterp.lua",
 		"edge.lua",
@@ -41,7 +41,7 @@ end
 
 	for _,name in ipairs(paths) do
 		local input = path_to_src .. name
-		local output = "temp.out"
+		local output = "self_opt/temp.out"
 		program(input, output)
 
 		local output_str = readFile(output)

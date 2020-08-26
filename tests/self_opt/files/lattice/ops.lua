@@ -13,7 +13,7 @@ v2[ ".." ] = function(v9, v10)
 	local v11, v12 = v9:getString()
 	local v13, v14 = v10:getString()
 	if (v11 and v13) then
-		return v1:InitWithNumber((v12 .. v14))
+		return v1:InitWithString((v12 .. v14))
 	else
 		return v1:InitWithBottom()
 	end

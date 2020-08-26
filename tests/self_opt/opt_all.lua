@@ -9,7 +9,7 @@ package.cpath = package.cpath
   .."../src/libs/?/?.so;"
 
 local path_to_src = "../src/"
-local target_dir = "./self_opt/"
+local target_dir = "self_opt/files/"
 local paths = {
 	"abstractInterp.lua",
 	"edge.lua",
