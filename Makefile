@@ -1,5 +1,5 @@
 LUA_DIR := $(CURDIR)/lua@5.4/src
-ALL_LIBS:= tests/libs src/libs
+ALL_LIBS:= tests/self_opt/files/libs src/libs
 
 .PHONY: all_libs $(ALL_LIBS)
 
