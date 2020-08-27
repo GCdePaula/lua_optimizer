@@ -5,8 +5,7 @@ The `lua_optimizer` is a program that performs optimizations on Lua code. We use
 
 ## Overview
 
-The first step of our analysis is finding which variables are constant at each point in the program, and finding code that is unreachable. We say a variable is constant at some point of the program when it can have only one possible value at that point. At every instruction, we try to determine the value of all variables immediately before and after the statement's execution, 
-and we use that *value* to assess which branches the program will take. To that end, we use a technique called abstract interpretation.
+The first step of our analysis is finding which variables are constant at each point in the program, and finding code that is unreachable. We say a variable is constant at some point of the program when it can have only one possible value at that point. At every instruction, we try to determine the value of all variables immediately before and after the statement's execution, and we use that *value* to assess which branches the program will take. To that end, we use a technique called abstract interpretation.
 
 Let's look at a few examples. Following Lua's semantics, we assume all variables start with a default value of `nil`.
 
@@ -63,9 +62,9 @@ A lattice is a _partially ordered set_ (poset) in which every two elements have 
 We'll explain what each of those terms mean.
 
 Informally, a _partially ordered set_ is a set together with a binary relation (≤) indicating that, for certain pairs of elements of the set, one of the elements precedes the other [3].
-The word "partial", opposed to total, means that this relation doesn't necessarily exist for every pair of elements.
+The word "partial", opposed to total, means that not all pairs of elements need to be comparable.
 
-To understand the concepts of _meet_ (denoted by the symbol ∧, and is also known as an infimum or greatest lower bound) and _join_ (denoted by the symbol ∨, and is also known as a supremum or least upper bound) we need to define the _lower bound_ and the _upper bound_ of two elements in a poset.
+To understand the concepts of _meet_ (denoted by the symbol ∧, and is also known as an infimum or greatest lower bound) and _join_ (denoted by the symbol ∨, and is also known as a supremum or least upper bound) we need to define _lower bound_ and _upper bound_ of two elements in a poset.
 Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A`:
   * The element `z` is a _lower bound_ of the pair `x` and `y` if `z ≤ x` and `z ≤ y`.
 
@@ -73,9 +72,9 @@ Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A
 
 With these two definitions, we can define _meet_ and _join_ of a poset [4]\[5].
 Let `A` be a set with a partial order (≤), and `x`, `y` and `z` elements in `A`:
-  * The element `z` is the _meet_ of the pair `x` and `y` if it satisfies two conditions: `z` is a lower bound of `x` and `y`, and `z` is greater than or equal to any other lower bound of `x` and `y`.
+  * The element `z` is the _meet_ (or greatest lower bound) of the pair `x` and `y` if it satisfies two conditions: `z` is a _lower bound_ of `x` and `y`, and `z` is greater than or equal to any other _lower bound_ of `x` and `y`.
 
-  * The element `z` is the _join_ of the pair `x` and `y` if it satisfies two conditions: `z` is a upper bound of `x` and `y`, and `z` is less than or equal to any other upper bound of `x` and `y`.
+  * The element `z` is the _join_ (or least upper bound) of the pair `x` and `y` if it satisfies two conditions: `z` is a _upper bound_ of `x` and `y`, and `z` is less than or equal to any other _upper bound_ of `x` and `y`.
 
 _Meet_ and _join_ are associative, commutative and idempotent:
   * x ∧ (y ∧ z) = (x ∧ y) ∧ z
@@ -85,8 +84,8 @@ _Meet_ and _join_ are associative, commutative and idempotent:
 For our analysis, we'll use a simple bounded lattice, which has a greatest element and a least element. There are three different levels of elements in our lattice: the highest element is Top, the lowest is Bottom, and the elements in the middle are all values (e.g. all numbers, all strings, booleans, nil). Note that there is an infinite number of elements in the middle level. However, the lattice still has a bounded depth as every element is at most two "steps" away from Bottom.
 
 The most relevant operation between elements for our analysis is the _meet_ operation, with the following rules. Here, C<sub>i</sub> and C<sub>j</sub> are some middle element:
-  * any ∧ Top = any
-  * any ∧ Bottom = Bottom
+  * x ∧ Top = x
+  * x ∧ Bottom = Bottom
   * C<sub>i</sub> ∧ C<sub>j</sub> = C<sub>i</sub>, if i = j
   * C<sub>i</sub> ∧ C<sub>j</sub> = Bottom, if i ≠ j
 
@@ -116,28 +115,26 @@ After the loop, `x` has the value `5`.
 As such, in the concrete interpretation, the set of values `x` can have before the loop is `{1}`, the set at the beginning of the loop is `{1, 2, 3, 4}`, and the set after the loop is `{5}`
 
 These sets are the concrete values `x` can have during the concrete interpretation, at their respective points of the program.
-We can map each set of concrete values to a lattice element, through what is called an abstraction function.
+We can map each set of concrete values to a lattice element through what is called an abstraction function.
 This abstraction function transforms a value from the concrete set to the abstract set, which is out lattice.
 For our lattice, the set `{1}` abstracts to the lattice element `1`, the set `{1, 2, 3, 4}` abstracts to Bottom, and the set `{5}` abstracts to the lattice element `5`.
 
 A lattice element assigned to `x` at some point of the program is valid if that element is less or equal than the abstraction of the concrete values of `x`.
 In other words, at each point of the program, our analysis can only assign a lower or equal lattice element to `x` than the abstraction of its concrete values.
 If the concrete values of `x` abstracts to Bottom, our analysis must assign Bottom to `x`.
-If the concrete values of `x` abstracts to a constant, must either assign that constant or Bottom to `x`.
+If the concrete values of `x` abstracts to a constant, our analysis must either assign that constant or Bottom to `x`.
 
-Note that assigning Bottom to every variable is always valid, because Bottom is less or equal than all lattice elements.
+Note that assigning Bottom to every variable is always valid, because Bottom is less than or equal to any lattice elements.
 However, our analysis wouldn't be very useful if it did that.
 We want to find the greatest valid lattice element for every variable at every point in the program, because it gives us more information.
 That information is then used for constant propagation and unreachable code elimination. More on that later.
 
-To that end, our analysis starts by initializing every variable to Top everywhere, and that every statement is unreachable.
+To that end, our analysis starts by initializing every variable to Top everywhere, and marking every statement as unreachable.
 This configuration is invalid for most programs.
 Through abstract interpretation, we may find out those values were incorrect and need to fall back into a more conservative truth, lowering lattice elements and marking statements as reachable until we reach a stable configuration.
 
 That stable configuration is a fixed point. We don't start in a fixed point, we reach it by lowering lattice elements.
 If the algorithm is stopped prematurely, the found configuration might be invalid.
-Assigning Bottom to every variable everywhere is a fixed point.
-However, our analysis searches for the greatest fixed point, because it gives us more information.
 
 
 ## Evaluating Expressions
@@ -151,7 +148,7 @@ Variables evaluate to the lattice element assigned to them at that point in the 
 Addition of two constant lattice elements result in a new lattice element with the result of the addition.
 Addition of Bottom and any other lattice element results in Bottom.
 
-Note that a variable cannot evaluate to Top, because (in the case of Lua) we cannot use a variable before defining it, and defined variables are initiated with `nil`.
+Note that a variable cannot evaluate to Top, because (in the case of Lua) we cannot use a variable before defining it, and defined variables are initialized with `nil`.
 When we add the entire language to our expression evaluator, we may discover bugs in the program, such as trying to add `nil` to a string.
 In those cases, we may stop prematurely and raise an error.
 
