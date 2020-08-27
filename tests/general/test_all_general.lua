@@ -15,6 +15,8 @@ local file_names = {
   "while",
   "upval",
   "repeat_until",
+  "generic_for",
+  "numeric_for",
 }
 
 local params = {...}

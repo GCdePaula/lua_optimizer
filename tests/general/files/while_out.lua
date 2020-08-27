@@ -19,4 +19,13 @@ v7 = "3"
 local v8 = 1
 while true do
 	v8 = (v8 + 1)
+	if _ENV["global"] then
+		break
+	end
+end
+local v9 = v8
+v9 = "4"
+local v10 = 1
+while true do
+	v10 = (v10 + 1)
 end

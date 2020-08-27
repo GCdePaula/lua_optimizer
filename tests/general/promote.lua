@@ -15,12 +15,15 @@ local file_names = {
   "while",
   "upval",
   "repeat_until",
+  "generic_for",
+  "numeric_for",
 }
 
 local params = {...}
 local name_param = params[1]
 
 local function promote_file(name)
+  print("Promoting: ", name)
   local path_to_src = "../src/"
   local program = loadfile(path_to_src .. "main.lua")
 
@@ -32,11 +35,9 @@ end
 
 
 if name_param then
-  print("Promoting: ", name_param)
   promote_file(name_param)
 else
   for _,file_name in ipairs(file_names) do
-    print("Promoting: ", file_name)
     promote_file(file_name)
   end
 end

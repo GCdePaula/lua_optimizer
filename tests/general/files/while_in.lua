@@ -26,6 +26,14 @@ z = "3"
 local x = 1
 while true do
   x = x + 1
+  if global then break end
 end
 local z = x
 z = "4"
+
+local x = 1
+while true do
+  x = x + 1
+end
+local z = x
+z = "5"
