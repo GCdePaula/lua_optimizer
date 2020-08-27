@@ -17,6 +17,7 @@ local file_names = {
   "repeat_until",
   "generic_for",
   "numeric_for",
+  "function",
 }
 
 local params = {...}
